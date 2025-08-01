@@ -20,7 +20,7 @@ class MainController:
         self.root.geometry(geometry)
 
         # Bind window close event
-        self.root.protocol("WM_DELETE_WINDOW", self.onclosing())
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing())
 
     def show_conversion_view(self):
         '''Show CV conversion view'''
