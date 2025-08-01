@@ -15,7 +15,7 @@ class MainWindow:
         '''Configure main window'''
         self.root.title("CV Converter")
         self.root.geometry("800x600")
-        self.root.minsize("600x400")
+        self.root.minsize(600, 400)
 
         # Configure grid weights
         self.root.grid_rowconfigure(1, weight=1)
