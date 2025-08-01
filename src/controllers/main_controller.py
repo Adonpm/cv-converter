@@ -20,7 +20,7 @@ class MainController:
         self.root.geometry(geometry)
 
         # Bind window close event
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing())
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def show_conversion_view(self):
         '''Show CV conversion view'''
@@ -30,8 +30,9 @@ class MainController:
         content_frame = self.main_window.get_content_frame()
         placeholder = ttk.Label(
             content_frame,
-            text="Conversio View\n(To be implemented)",
-            font=("Arial", 14)
+            text="Conversion View\n(To be implemented)",
+            font=("Arial", 14),
+            justify="center"
         )
         placeholder.grid(row=0, column=0)
 
@@ -44,7 +45,8 @@ class MainController:
         placeholder = ttk.Label(
             content_frame,
             text="Settings View\n(To be implemented)",
-            font=("Arial", 14)
+            font=("Arial", 14),
+            justify="center"
         )
         placeholder.grid(row=0, column=0)
 

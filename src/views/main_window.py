@@ -77,7 +77,7 @@ class MainWindow:
         welcome_text = ttk.Label(
             welcome_frame,
             text="Welcome to CV Converter\n\n Click 'Convert CVs' to start" \
-            "converting your Whoz template CVs\nor 'Settings' to configure your preferences.",
+            " converting your Whoz template CVs\nor 'Settings' to configure your preferences.",
             font=("Arial", 12),
             justify="center"
         )
