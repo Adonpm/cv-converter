@@ -15,9 +15,9 @@ class CVParser:
             doc = Document(file_path)
             self.extracted_data = {
                 "name": "",
-                "title": "",
                 "current_position": "",
                 "years_experience": "",
+                "skills": [], # Needs to address
                 "nationality": "",
                 "date_of_birth": "",
                 "education": [],
@@ -27,7 +27,7 @@ class CVParser:
                 "key_capabilities": "",
                 "languages": [],
                 "professional_experience": [],
-                "contact": {},
+                "contact": {}, # Needs to address
                 "summary": "",
                 "publications_or_awards": []
             }
