@@ -21,7 +21,7 @@ class TemplateManager:
                 template_name = template_file.stem
                 self.templates[template_name] = str(template_file)
 
-    def get_template(self):
+    def get_template_list(self):
         """Get list of available templates"""
         return list(self.templates.keys())
     

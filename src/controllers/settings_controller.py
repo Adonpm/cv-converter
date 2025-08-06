@@ -11,7 +11,7 @@ class SettingsController:
 
     def get_templates(self):
         """Get list of available templates"""
-        return self.template_manager.get_template()
+        return self.template_manager.get_template_list()
     
     def get_templates_directory(self):
         """Get templates directory path"""

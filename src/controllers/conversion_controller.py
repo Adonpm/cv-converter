@@ -20,7 +20,7 @@ class ConversionController:
 
     def get_templates(self):
         """Get list of available templates"""
-        return self.template_manager.get_template()
+        return self.template_manager.get_template_list()
     
     def convert_cvs(self, input_files, settings):
         """Convert multiple CVs"""
