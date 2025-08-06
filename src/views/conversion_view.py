@@ -133,7 +133,7 @@ class ConversionView:
 
     def clear_files(self):
         """Clear all files"""
-        self.files_listbox.delete(0, tk.END)
+        self.file_listbox.delete(0, tk.END)
         self.input_files.clear()
 
     def load_templates(self):
