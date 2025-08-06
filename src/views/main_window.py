@@ -74,14 +74,46 @@ class MainWindow:
         welcome_frame.grid_rowconfigure(0, weight=1)
         welcome_frame.grid_columnconfigure(0, weight=1)
 
-        welcome_text = ttk.Label(
-            welcome_frame,
-            text="Welcome to CV Converter\n\n Click 'Convert CVs' to start" \
-            " converting your Whoz template CVs\nor 'Settings' to configure your preferences.",
+        # Main container for all content
+        content_frame = ttk.Frame(welcome_frame)
+        content_frame.grid(row=0, column=0)
+
+        # App icon/logo (using Unicode)
+        logo_label = ttk.Label(
+            content_frame,
+            text="📄",  # Document conversion icon
+            font=("Arial", 48)
+        )
+        logo_label.grid(row=0, column=0, pady=(0, 20))
+
+        # Welcome title
+        title_label = ttk.Label(
+            content_frame,
+            text="Welcome to CV Converter",
+            font=("Arial", 18, "bold")
+        )
+        title_label.grid(row=1, column=0, pady=(0, 10))
+
+        # Description with icons
+        desc_label = ttk.Label(
+            content_frame,
+            text="🔄 Click 'Convert CVs' to start converting your CVs\n\n"
+                "⚙️ Click 'Settings' to configure your preferences",
             font=("Arial", 12),
             justify="center"
         )
-        welcome_text.grid(row=0, column=0)
+        desc_label.grid(row=2, column=0, pady=(0, 20))
+
+        # Feature highlights
+        features_frame = ttk.Frame(content_frame)
+        features_frame.grid(row=3, column=0, pady=10)
+
+        ttk.Label(features_frame, text="✨ Multiple template support", 
+                font=("Arial", 10)).grid(row=0, column=0, pady=2)
+        ttk.Label(features_frame, text="🎨 Customizable formatting", 
+                font=("Arial", 10)).grid(row=1, column=0, pady=2)
+        ttk.Label(features_frame, text="📁 Batch processing", 
+                font=("Arial", 10)).grid(row=2, column=0, pady=2)
 
     def clear_content(self):
         '''Clear the content frame'''
