@@ -4,7 +4,7 @@ Progress bar component
 import tkinter as tk
 from tkinter import ttk
 
-class ProgressBar:
+class ProgressDialog:
     def __init__(self, parent, title="Processing..."):
         self.parent = parent
         self.dialog = tk.Toplevel(parent)
