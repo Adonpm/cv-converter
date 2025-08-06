@@ -29,7 +29,7 @@ class TemplateManager:
         """Get the file path of a specific template"""
         return self.templates.get(template_name)
     
-    def apply_template(self, template_name, cv_data, output_path, formatting_options=None, client_name=None, opportunity_name=None):
+    def apply_template(self, template_name, cv_data, output_path, formatting_options=None):
         """Apply a template to the provided CV data"""
         template_path = self.get_template_path(template_name)
         if not template_path:
@@ -40,7 +40,7 @@ class TemplateManager:
             doc = Document(template_path)
 
             # Apply CV data to the template
-            self._populate_template(doc, cv_data, formatting_options or {}, client_name, opportunity_name)
+            self._populate_template(doc, cv_data, formatting_options or {})
 
             # Save output
             doc.save(output_path)
@@ -49,7 +49,7 @@ class TemplateManager:
         except Exception as e:
             raise Exception(f"Error applying template: {str(e)}")
 
-    def _populate_template(self, doc, cv_data, formatting_options, client_name=None, opportunity_name=None):
+    def _populate_template(self, doc, cv_data, formatting_options):
         """Populate template with CV data"""
         # Replace placeholders in paragraphs
         for paragraph in doc.paragraphs:
@@ -64,7 +64,7 @@ class TemplateManager:
 
         # Update headers and footers
         for section in doc.sections:
-            self._update_header_footer(section, cv_data, formatting_options, client_name, opportunity_name)
+            self._update_header_footer(section, cv_data, formatting_options)
 
     def _replace_placeholders(self, paragraph, cv_data):
         """Replace placeholders in paragraph text"""
@@ -90,10 +90,10 @@ class TemplateManager:
                 # Add new text
                 run = paragraph.add_run(text.replace(placeholder, value))
 
-    def _update_header_footer(self, section, cv_data, formatting_options, client_name=None, opportunity_name=None):
+    def _update_header_footer(self, section, cv_data, formatting_options):
         """Update header and footer with optional client/opportunity info from tkinter interface"""
-        client = client_name if client_name is not None else ""
-        opportunity = opportunity_name if opportunity_name is not None else ""
+        client = formatting_options.get("client_name", "")
+        opportunity = formatting_options.get("opportunity_name", "")
         # Update footer
         if section.footer:
             for paragraph in section.footer.paragraphs:
