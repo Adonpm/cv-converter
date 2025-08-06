@@ -6,7 +6,9 @@ from tkinter import ttk
 from models.settings_model import SettingsModel
 from views.main_window import MainWindow
 from views.conversion_view import ConversionView
+from views.settings_view import SettingsView
 from controllers.conversion_controller import ConversionController
+from controllers.settings_controller import SettingsController
 
 class MainController:
     def __init__(self, root):
@@ -16,6 +18,7 @@ class MainController:
 
         # Initialize controllers
         self.conversion_controller = ConversionController(self.settings_model, self)
+        self.settings_controller = SettingsController(self.settings_model)
 
         # Initialize main window
         self.main_window = MainWindow(root, self)
@@ -30,24 +33,14 @@ class MainController:
     def show_conversion_view(self):
         '''Show CV conversion view'''
         self.main_window.clear_content()
-
-        # Placeholder for conversion view
         content_frame = self.main_window.get_content_frame()
         self.current_view = ConversionView(content_frame, self.conversion_controller)
 
     def show_settings_view(self):
         '''Show settings view'''
         self.main_window.clear_content()
-
-        # Placeholder for settings view
         content_frame = self.main_window.get_content_frame()
-        placeholder = ttk.Label(
-            content_frame,
-            text="Settings View\n(To be implemented)",
-            font=("Arial", 14),
-            justify="center"
-        )
-        placeholder.grid(row=0, column=0)
+        self.current_view = SettingsView(content_frame, self.settings_controller)
 
     def on_closing(self):
         '''Handle application closing'''
