@@ -5,6 +5,7 @@ from docx import Document
 from pathlib import Path
 from utils.config import Config
 import shutil
+from docx.shared import Pt
 
 class TemplateManager:
     def __init__(self):
@@ -60,13 +61,13 @@ class TemplateManager:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        self._replace_placeholders(paragraph, cv_data)
+                        self._replace_placeholders(paragraph, cv_data, formatting_options)
 
         # Update headers and footers
         for section in doc.sections:
             self._update_header_footer(section, cv_data, formatting_options)
 
-    def _replace_placeholders(self, paragraph, cv_data):
+    def _replace_placeholders(self, paragraph, cv_data, formatting_options):
         """Replace placeholders in paragraph text"""
         text = paragraph.text
 
@@ -75,11 +76,11 @@ class TemplateManager:
             "{{NAME}}": cv_data.get("name", ""),
             "{{TITLE}}": cv_data.get("current_position", ""),
             "{{SUMMARY}}": cv_data.get("summary", ""),
-            "{{EXPERIENCE}}": cv_data.get("experience", ""), # Need to fix
-            "{{EDUCATION}}": "\n".join(cv_data.get("education", [])),
-            "{{SKILLS}}": "\n".join(cv_data.get("skills", [])), # Need to fix
-            "{{CERTIFICATIONS}}": "\n".join(cv_data.get("certifications", [])),
-            "{{PROJECTS}}": "\n".join(cv_data.get("professional_experience", []))
+            "{{YEARS OF EXPERIENCE}}": cv_data.get("years_experience", ""), 
+            "{{EDUCATION}}": self._format_education(cv_data.get("education", [])),
+            "{{SKILLS}}": self._format_skills(cv_data.get("skills", [])),
+            "{{CERTIFICATIONS}}": self._format_certifications(cv_data.get("certifications", [])),
+            "{{PROJECTS}}": self._format_professional_experience(cv_data.get("professional_experience", []))
         }
 
         # Replace placeholders
@@ -89,6 +90,14 @@ class TemplateManager:
                 paragraph.clear()
                 # Add new text
                 run = paragraph.add_run(text.replace(placeholder, value))
+
+                ############################################################
+                # Apply font formatting to all placeholders
+                if formatting_options.get("font_family"):
+                    run.font.name = formatting_options["font_family"]
+                if formatting_options.get("font_size"):
+                    run.font.size = Pt(formatting_options["font_size"])
+                ############################################################
 
     def _update_header_footer(self, section, cv_data, formatting_options):
         """Update header and footer with optional client/opportunity info from tkinter interface"""
