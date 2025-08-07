@@ -110,11 +110,11 @@ class CVParser:
                     if not dob.startswith("(**/**/****)"):
                         self.extracted_data["date_of_birth"] = dob
             
-            elif row_num == 2 and len(cells) >= 1:
-                # Extract years of experience
-                experience_text = cells[0]
-                if "Years of experience:" in experience_text:
-                    self.extracted_data["years_experience"] =  experience_text.split(":")[-1].strip()
+        elif row_num == 2 and len(cells) >= 1:
+            # Extract years of experience
+            experience_text = cells[0]
+            if "Years of experience:" in experience_text:
+                self.extracted_data["years_experience"] =  experience_text.split(":")[-1].strip()
     
     ###################################################################
     ################ FIX THIS LATER ###################################
