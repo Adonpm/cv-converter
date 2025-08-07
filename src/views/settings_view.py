@@ -20,7 +20,7 @@ class SettingsView:
         scrollable_frame = ttk.Frame(canvas)
 
         scrollable_frame.bind(
-            "Configure",
+            "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
 
