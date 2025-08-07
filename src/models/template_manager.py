@@ -168,7 +168,7 @@ class TemplateManager:
             
             # Add role and company
             if exp.get("experience_header") and exp.get("client"):
-                exp_text.append(f"{exp['role']} - {exp['client']}")
+                exp_text.append(f"{exp['experience_header']} - {exp['client']}")
             elif exp.get("experience_header"):
                 exp_text.append(exp['experience_header'])
             elif exp.get("client"):
