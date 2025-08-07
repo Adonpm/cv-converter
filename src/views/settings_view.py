@@ -23,8 +23,12 @@ class SettingsView:
             "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
+        canvas.bind(
+            "<Configure>", 
+            lambda e: canvas.itemconfig(canvas_window_id, width=canvas.winfo_width())
+        )
 
-        canvas.create_window((0,0), window=scrollable_frame, anchor="nw")
+        canvas_window_id = canvas.create_window((0,0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
 
         canvas.pack(side="left", fill="both", expand=True)
