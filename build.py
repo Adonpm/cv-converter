@@ -30,7 +30,7 @@ def build_executable():
 
         # Hidden imports
         "--hidden-import=docx",
-        "--hidden-import=pillow",
+        "--hidden-import=PIL",
 
         # Exclude unnecessary modules
         "--exclude-module=matplotlib",
