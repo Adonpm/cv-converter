@@ -61,7 +61,13 @@ class CVParser:
 
             # Process other tables based on section headers
             elif cells:
-                section_header = cells[0].upper()
+                potential_header = cells[0].upper()
+
+                # Check if this is actually a header (no dates/numbers)
+                if any(char.isdigit() for char in potential_header):
+                    section_header = "PROFESSIONAL EXPERIENCE"
+                else:
+                    section_header = potential_header
 
                 if "EDUCATION" in section_header:
                     self._extract_education(cells)
@@ -238,7 +244,8 @@ class CVParser:
         """Parse detailed job information"""
         if "Project title" in job_text:
             if "Location" in job_text and "Client name" in job_text and "Detailed project description" in job_text and "Detailed description of the expert mission (on this project)" in job_text and "Technical expertise" in job_text:
-                parts = re.split(r'Project title:|Location:|Client name:|Detailed project description:|Detailed description of the expert mission (on this project):|Technical expertise:', job_text)
+                raw_parts = re.split(r'Project title:|Location:|Client name:|Detailed project description:|Detailed description of the expert mission \(on this project\):|Technical expertise:', job_text)
+                parts = [part for part in raw_parts if part is not None]
                 experience_entry["experience_header"] = parts[0].strip()
                 experience_entry["project_title"] = parts[1].strip()
                 experience_entry["location"] = parts[2].strip()
