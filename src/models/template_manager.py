@@ -77,6 +77,7 @@ class TemplateManager:
             "{{TITLE}}": cv_data.get("current_position", "") or "",
             "{{SUMMARY}}": cv_data.get("summary", "") or "",
             "{{YEARS OF EXPERIENCE}}": cv_data.get("years_experience", "") or "", 
+            "{{EXPERIENCE SUMMARY}}": self._format_professional_experience_summary(cv_data.get("professional_experience_summary", [])),
             "{{EDUCATION}}": self._format_education(cv_data.get("education", [])),
             ########################################################
             "{{SKILLS}}": self._format_skills(cv_data.get("skills", [])), 
@@ -92,10 +93,38 @@ class TemplateManager:
                 # Ensure value is a string, not None
                 safe_value = str(value) if value is not None else ""
 
+                # Store formatting before clearing
+                original_style = paragraph.style
+                original_font_info = {}
+                
+                if paragraph.runs:
+                    first_run = paragraph.runs[0]
+                    original_font_info = {
+                        'name': first_run.font.name,
+                        'size': first_run.font.size,
+                        'bold': first_run.bold,
+                        'italic': first_run.italic,
+                        'color': first_run.font.color.rgb if first_run.font.color and first_run.font.color.rgb else None
+                    }
+
                 # Clear existing text
                 paragraph.clear()
                 # Add new text
                 run = paragraph.add_run(text.replace(placeholder, safe_value))
+
+                # Restore formatting
+                paragraph.style = original_style
+                
+                if original_font_info.get('name'):
+                    run.font.name = original_font_info['name']
+                if original_font_info.get('size'):
+                    run.font.size = original_font_info['size']
+                if original_font_info.get('bold') is not None:
+                    run.bold = original_font_info['bold']
+                if original_font_info.get('italic') is not None:
+                    run.italic = original_font_info['italic']
+                if original_font_info.get('color'):
+                    run.font.color.rgb = original_font_info['color']
 
                 ############################################################
                 # Apply font formatting to all placeholders
@@ -108,7 +137,7 @@ class TemplateManager:
                 ############################################################
             elif placeholder in text and placeholder == "{{PROJECTS}}":
                 projects_text = self._format_professional_experience(cv_data.get("professional_experience", []))
-                
+
                 # Parse and add formatted text
                 self._add_formatted_text(paragraph, projects_text)
 
@@ -116,6 +145,19 @@ class TemplateManager:
         """Add text with formatting markers to paragraph"""
         import re
         
+        original_style = paragraph.style
+        original_font_info = {}
+    
+        # Get font info from the first run (if exists)
+        if paragraph.runs:
+            first_run = paragraph.runs[0]
+            original_font_info = {
+                'name': first_run.font.name,
+                'size': first_run.font.size,
+                'color': first_run.font.color.rgb if first_run.font.color and first_run.font.color.rgb else None,
+                'italic': first_run.italic
+            }
+
         # Clear existing text and formatting
         paragraph.clear()
         
@@ -126,20 +168,46 @@ class TemplateManager:
             if i % 2 == 0:  # Normal text
                 if part:
                     run = paragraph.add_run(part)
+
+                    # Apply original font formatting + explicitly not bold
+                    if original_font_info.get('name'):
+                        run.font.name = original_font_info['name']
+                    if original_font_info.get('size'):
+                        run.font.size = original_font_info['size']
+                    if original_font_info.get('color'):
+                        run.font.color.rgb = original_font_info['color']
+                    if original_font_info.get('italic') is not None:
+                        run.italic = original_font_info['italic']
+                        
                     # Explicitly remove bold formatting for normal text
                     run.bold = False
                     run.font.bold = False  # Additional explicit setting
             else:  # Bold text
                 if part:
                     bold_run = paragraph.add_run(part)
+
+                    # Apply original font formatting + make bold
+                    if original_font_info.get('name'):
+                        bold_run.font.name = original_font_info['name']
+                    if original_font_info.get('size'):
+                        bold_run.font.size = original_font_info['size']
+                    if original_font_info.get('color'):
+                        bold_run.font.color.rgb = original_font_info['color']
+                    if original_font_info.get('italic') is not None:
+                        bold_run.italic = original_font_info['italic']
+
+                    # Additional explicit setting
                     bold_run.bold = True
-                    bold_run.font.bold = True  # Additional explicit setting
+                    bold_run.font.bold = True  
+        
+        # Restore paragraph style
+        paragraph.style = original_style
 
     def _format_education(self, education_list):
         """Format education entries"""
         if not education_list:
             return ""
-        return "\n".join(f"• {edu}" for edu in education_list if edu)
+        return "\n".join(f"● {edu}" for edu in education_list if edu)
 
     ########################################################
     def _format_skills(self, skills_list):
@@ -166,7 +234,7 @@ class TemplateManager:
             else:
                 formatted.append(str(cert))
         
-        return "\n".join([f"{cert}" for cert in formatted])
+        return "\n".join([f"● {cert}" for cert in formatted])
     
     def _format_memberships(self, memberships_list):
         """Format professional membership entries"""
@@ -180,12 +248,12 @@ class TemplateManager:
                 if membership.get("programme"):
                     membership_text.append(membership["programme"])
                 if membership.get("date"):
-                    membership_text.append(f"- {membership['date']}")
+                    membership_text.append(f", {membership['date']}")
                 formatted.append(" ".join(membership_text))
             else:
                 formatted.append(str(membership))
         
-        return "\n".join([f"{membership}" for membership in formatted])
+        return "\n".join([f"● {membership}" for membership in formatted])
 
     def _format_professional_experience(self, experience_list):
         """Format professional experience entries"""
@@ -219,6 +287,26 @@ class TemplateManager:
                 formatted.append("\n".join(exp_parts))
         
         return "\n\n".join([f"{exp}" for exp in formatted]) 
+    
+    def _format_professional_experience_summary(self, experience_list):
+        """Format professional experience entries"""
+        if not experience_list:
+            return ""
+        
+        formatted = []
+        for exp in experience_list:
+            exp_parts = []
+            # Add role and company
+            if exp.get("employee_company"):
+                exp_parts.append(exp['employee_company'])
+            if exp.get("duration_period"):
+                exp_parts.append(exp['duration_period'])
+            
+            # Combine header and description
+            if exp_parts:
+                formatted.append(" - ".join(exp_parts))
+        
+        return "\n".join([f"●   {exp}" for exp in formatted]) 
 
     def _update_header_footer(self, section, cv_data, formatting_options):
         """Update header and footer with optional client/opportunity info from tkinter interface"""
