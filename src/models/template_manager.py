@@ -99,10 +99,12 @@ class TemplateManager:
 
                 ############################################################
                 # Apply font formatting to all placeholders
+                '''
                 if formatting_options.get("font_family"):
                     run.font.name = formatting_options["font_family"]
                 if formatting_options.get("font_size"):
                     run.font.size = Pt(formatting_options["font_size"])
+                '''
                 ############################################################
 
     def _format_education(self, education_list):
