@@ -80,7 +80,8 @@ class TemplateManager:
             "{{EXPERIENCE SUMMARY}}": self._format_professional_experience_summary(cv_data.get("professional_experience_summary", [])),
             "{{EDUCATION}}": self._format_education(cv_data.get("education", [])),
             ########################################################
-            "{{SKILLS}}": self._format_skills(cv_data.get("skills", [])), 
+            #"{{SKILLS}}": self._format_skills(cv_data.get("skills", [])), 
+            "{{SKILLS}}": self._format_skills(cv_data.get("professional_experience", [])), 
             ########################################################
             "{{MEMBERSHIPS}}": self._format_memberships(cv_data.get("professional_memberships", [])),
             "{{CERTIFICATIONS}}": self._format_certifications(cv_data.get("certifications", [])),
@@ -210,9 +211,23 @@ class TemplateManager:
         return "\n".join(f"● {edu}" for edu in education_list if edu)
 
     ########################################################
-    def _format_skills(self, skills_list):
+    def _format_skills(self, experience_list):
         """Format skills entries"""
-        pass
+        if not experience_list:
+            return ""
+        
+        formatted = []
+        for exp in experience_list:
+            # Add role and company
+            if exp.get("technical_expertise"):
+                skills_text = exp['technical_expertise']
+                individual_skills = [skill.strip() for skill in skills_text.split(',') if skill.strip()]
+                formatted.extend(individual_skills)
+        
+        # Take first 8 skills and join them
+        first_8_skills = formatted[:8]
+        display_skills = ", ".join(first_8_skills) 
+        return display_skills
     ########################################################
 
     def _format_certifications(self, certifications_list):
