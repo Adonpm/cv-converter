@@ -27,6 +27,7 @@ class CVParser:
                 "key_capabilities": "",
                 "languages": [],
                 "professional_experience": [],
+                "professional_experience_summary": [],
                 "contact": {}, # Needs to address
                 "summary": "",
                 "publications_or_awards": []
@@ -223,26 +224,31 @@ class CVParser:
             job_text = cells[1].strip()
 
             if duration_text and job_text and job_text != "(To be completed)":
-                experience_entry = {
-                    "duration": duration_text,
-                    "details": job_text
-                }
-                # Parse duration for start/end dates
-                if "From" in duration_text and "Duration" in duration_text:
-                    parts = re.split(r'From|Duration:', duration_text)
-                    if len(parts) >= 2:
-                        experience_entry["start_date"] = parts[1].strip()
-                    if len(parts) >= 3:
-                        experience_entry["duration_period"] = parts[2].strip()
+                experience_entry = {}
+                experience_summary_entry = {}
                 
                 # Parse job details for company, role, location, etc.
-                self._parse_job_details(experience_entry, job_text)
+                self._parse_job_details(experience_entry, experience_summary_entry, job_text, duration_text)
                 
                 self.extracted_data["professional_experience"].append(experience_entry)
+                self.extracted_data["professional_experience_summary"].append(experience_summary_entry)
 
-    def _parse_job_details(self, experience_entry, job_text):
+    def _parse_job_details(self, experience_entry, experience_summary_entry, job_text, duration_text):
         """Parse detailed job information"""
         if "Project title" in job_text:
+            # Parse duration for start/end dates
+            if "From" in duration_text and "Duration" in duration_text:
+                parts = re.split(r'From|Duration:', duration_text)
+                if len(parts) >= 2:
+                    experience_entry["start_date"] = parts[1].strip()
+                if len(parts) >= 3:
+                    experience_entry["duration_period"] = parts[2].strip()
+            elif "Duration" in duration_text:
+                parts = re.split(r'Duration:', duration_text)
+                if len(parts) >= 2:
+                    experience_entry["start_date"] = parts[0].strip()
+                    experience_entry["duration_period"] = parts[1].strip()
+
             if "Location" in job_text and "Client name" in job_text and "Detailed project description" in job_text and "Detailed description of the expert mission (on this project)" in job_text and "Technical expertise" in job_text:
                 raw_parts = re.split(r'Project title:|Location:|Client name:|Detailed project description:|Detailed description of the expert mission \(on this project\):|Technical expertise:', job_text)
                 parts = [part for part in raw_parts if part is not None]
@@ -254,18 +260,31 @@ class CVParser:
                 experience_entry["expert_mission_description"] = parts[5].strip()
                 experience_entry["technical_expertise"] = parts[6].strip()
         else:
+            # Parse duration for start/end dates
+            if "From" in duration_text and "Duration" in duration_text:
+                parts = re.split(r'From|Duration:', duration_text)
+                if len(parts) >= 2:
+                    experience_summary_entry["start_date"] = parts[1].strip()
+                if len(parts) >= 3:
+                    experience_summary_entry["duration_period"] = parts[2].strip()
+            elif "Duration" in duration_text:
+                parts = re.split(r'Duration:', duration_text)
+                if len(parts) >= 2:
+                    experience_summary_entry["start_date"] = parts[0].strip()
+                    experience_summary_entry["duration_period"] = parts[1].strip()
+
             if "Location" in job_text and "Description" in job_text:
                 parts = re.split(r'Location:|Description', job_text)
                 lines = parts[0].split('\n')
                 if len(lines) >= 2:
-                    experience_entry["employee_company"] = lines[0].strip()
-                    experience_entry["employee_position"] = lines[1].strip()
-                    experience_entry["employee_location"] = parts[1].strip()
-                    experience_entry["employee_description"] = parts[2].strip()
+                    experience_summary_entry["employee_company"] = lines[0].strip()
+                    experience_summary_entry["employee_position"] = lines[1].strip()
+                    experience_summary_entry["employee_location"] = parts[1].strip()
+                    experience_summary_entry["employee_description"] = parts[2].strip()
                 else:
-                    experience_entry["employee_company"] = parts[0].strip()
-                    experience_entry["employee_location"] = parts[1].strip()
-                    experience_entry["employee_description"] = parts[2].strip()
+                    experience_summary_entry["employee_company"] = parts[0].strip()
+                    experience_summary_entry["employee_location"] = parts[1].strip()
+                    experience_summary_entry["employee_description"] = parts[2].strip()
 
     def _extract_publications_professional_awards(self, cells):
         """Extract Publications or Awards"""
