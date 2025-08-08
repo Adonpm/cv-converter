@@ -71,7 +71,10 @@ class CVParser:
                     section_header = potential_header
 
                 if "EDUCATION" in section_header:
-                    self._extract_education(cells)
+                    if len(row.cells) >= 2:
+                        right_cell = row.cells[1]
+                        self._extract_education_cell(right_cell) # pass the actual right-hand _Cell
+                        continue
                 elif "CERTIFICATION" in section_header:
                     self._extract_certifications(cells)
                 elif "PROFESSIONAL MEMBERSHIPS" in section_header or "ACCREDITATIONS" in section_header:
@@ -93,7 +96,13 @@ class CVParser:
             # Extract name from "LAST NAME First name: xxx yy"
             name_text = cells[0]
             if ":" in name_text:
-                self.extracted_data["name"] = name_text.split(":")[-1].strip()
+                name = name_text.split(":")[-1].strip()
+
+                if len(name.split()) >= 2:
+                    last_name = name.split()[-1]
+                    balance_name = " ".join(name.split()[:-1])
+                    name = last_name + " " + balance_name
+                self.extracted_data["name"] = name
 
             # Extract nationality if present
             if len(cells) >= 3 and "Nationality" in cells[2]:
@@ -123,20 +132,36 @@ class CVParser:
             if "Years of experience:" in experience_text:
                 self.extracted_data["years_experience"] =  experience_text.split(":")[-1].strip()
     
-    ###################################################################
-    ################ FIX THIS LATER ###################################
-    ###################################################################
-    def _extract_education(self, cells): 
-        """Extract education information"""
-        if len(cells) >= 2:
-            education_text = cells[1].strip()
-            if education_text and education_text != "(To be completed)":
-                # Split by year patterns or newlines
-                education_items = re.split(r'\d{4}', education_text)
-                for item in education_items:
-                    item = item.strip()
-                    self.extracted_data["education"].append(item)    
+    def _extract_education_cell(self, cell):
+        # Defensive: ensure we have a docx cell
+        if not hasattr(cell, "tables"):
+            raise TypeError("Expected a python-docx cell object; got a non-cell value")
+        
+        entry_final = []
+        for ti, tbl in enumerate(cell.tables):
+            entry = {}
+            for ri, row in enumerate(tbl.rows):
+                # Expecting rows like ['School/University:', 'London School of Economics']
+                if len(row.cells) >= 2:
+                    label = row.cells[0].text.strip().rstrip(":")
+                    value = " ".join(c.text.strip() for c in row.cells[1:] if c.text.strip())
+                elif len(row.cells) == 1:
+                    cell_text = row.cells[0].text.strip()
+                    if ":" in cell_text:
+                        label, value = [s.strip() for s in cell_text.split(":", 1)]
+                    else:
+                        label, value = cell_text, ""
+                else:
+                    continue
 
+                if value and value != "(To be completed)":
+                    entry[label] = value
+
+            row_vals_dict = entry 
+            entry_final.append(row_vals_dict)
+
+        self.extracted_data["education"] = entry_final
+  
     def _extract_certifications(self, cells):
         """Extract certification information"""
         if len(cells) >= 2:

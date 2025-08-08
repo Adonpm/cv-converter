@@ -208,7 +208,22 @@ class TemplateManager:
         """Format education entries"""
         if not education_list:
             return ""
-        return "\n".join(f"● {edu}" for edu in education_list if edu)
+        
+        formatted = []
+        for edu in education_list:
+            if isinstance(edu, dict):
+                cert_text = []
+                if edu.get("Certificate/Diploma"):
+                    cert_text.append(edu["Certificate/Diploma"])
+                if edu.get("School/University"):
+                    cert_text.append(edu["School/University"])
+                #if edu.get("Specialisation"):
+                    #cert_text.append(f"- {edu["Specialisation"]}")
+                formatted.append(", ".join(cert_text))
+            else:
+                formatted.append(str(edu))
+        
+        return "\n".join([f"● {edu}" for edu in formatted])
 
     ########################################################
     def _format_skills(self, experience_list):
@@ -312,14 +327,14 @@ class TemplateManager:
         for exp in experience_list:
             exp_parts = []
             # Add role and company
-            if exp.get("employee_company"):
-                exp_parts.append(exp['employee_company'])
             if exp.get("duration_period"):
                 exp_parts.append(exp['duration_period'])
+            if exp.get("employee_company"):
+                exp_parts.append(exp['employee_company'])
             
             # Combine header and description
             if exp_parts:
-                formatted.append(" - ".join(exp_parts))
+                formatted.append(" at ".join(exp_parts))
         
         return "\n".join([f"●   {exp}" for exp in formatted]) 
 
