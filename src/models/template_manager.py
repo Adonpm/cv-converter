@@ -88,7 +88,7 @@ class TemplateManager:
 
         # Replace placeholders
         for placeholder, value in placeholders.items():
-            if placeholder in text:
+            if placeholder in text and placeholder != "{{PROJECTS}}":
                 # Ensure value is a string, not None
                 safe_value = str(value) if value is not None else ""
 
@@ -106,6 +106,34 @@ class TemplateManager:
                     run.font.size = Pt(formatting_options["font_size"])
                 '''
                 ############################################################
+            elif placeholder in text and placeholder == "{{PROJECTS}}":
+                projects_text = self._format_professional_experience(cv_data.get("professional_experience", []))
+                
+                # Parse and add formatted text
+                self._add_formatted_text(paragraph, projects_text)
+
+    def _add_formatted_text(self, paragraph, text):
+        """Add text with formatting markers to paragraph"""
+        import re
+        
+        # Clear existing text and formatting
+        paragraph.clear()
+        
+        # Split text by bold markers
+        parts = re.split(r'\*\*(.*?)\*\*', text)
+        
+        for i, part in enumerate(parts):
+            if i % 2 == 0:  # Normal text
+                if part:
+                    run = paragraph.add_run(part)
+                    # Explicitly remove bold formatting for normal text
+                    run.bold = False
+                    run.font.bold = False  # Additional explicit setting
+            else:  # Bold text
+                if part:
+                    bold_run = paragraph.add_run(part)
+                    bold_run.bold = True
+                    bold_run.font.bold = True  # Additional explicit setting
 
     def _format_education(self, education_list):
         """Format education entries"""
@@ -166,36 +194,31 @@ class TemplateManager:
         
         formatted = []
         for exp in experience_list:
-            exp_text = []
-            
+            exp_parts = []
+            header_parts = []
             # Add role and company
-            if exp.get("experience_header") and exp.get("client"):
-                exp_text.append(f"{exp['experience_header']} - {exp['client']}")
-            elif exp.get("experience_header"):
-                exp_text.append(exp['experience_header'])
-            elif exp.get("client"):
-                exp_text.append(exp['client'])
-            
-            # Add duration
+            if exp.get("experience_header"):
+                header_parts.append(exp['experience_header'])
+            if exp.get("client"):
+                header_parts.append(exp['client'])
             if exp.get("duration_period"):
-                exp_text.append(f"({exp['duration_period']})")
-            
-            # Add location
-            #if exp.get("location"):
-                #exp_text.append(f"Location: {exp['location']}")
+                header_parts.append(exp['duration_period'])
+
+            # Join header parts with commas
+            if header_parts:
+                header_line = ", ".join(header_parts)
+                exp_parts.append(f"**{header_line}**") # Mark for bold formatting
             
             # Add description
             if exp.get("expert_mission_description"):
                 description = exp['expert_mission_description']
-                exp_text.append(f"\n{description}")
+                exp_parts.append(description)
             
-            # Add technical expertise
-            #if exp.get("technical_expertise"):
-                #exp_text.append(f"\nTechnical expertise: {exp['technical_expertise']}")
-            
-            formatted.append("\n".join(exp_text))
+            # Combine header and description
+            if exp_parts:
+                formatted.append("\n".join(exp_parts))
         
-        return "\n\n".join([f"• {exp}" for exp in formatted]) 
+        return "\n\n".join([f"{exp}" for exp in formatted]) 
 
     def _update_header_footer(self, section, cv_data, formatting_options):
         """Update header and footer with optional client/opportunity info from tkinter interface"""
