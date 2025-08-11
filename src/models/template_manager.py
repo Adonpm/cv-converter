@@ -87,9 +87,16 @@ class TemplateManager:
 
         # Replace placeholders
         for placeholder, value in placeholders.items():
+            if placeholder not in text:
+                continue
+
             if placeholder in text and placeholder != "{{PROJECTS}}":
                 # Ensure value is a string, not None
                 safe_value = str(value) if value is not None else ""
+
+                if not safe_value.strip():
+                    self._delete_paragraph(paragraph)
+                    continue
 
                 # Store formatting before clearing
                 original_style = paragraph.style
@@ -136,8 +143,20 @@ class TemplateManager:
             elif placeholder in text and placeholder == "{{PROJECTS}}":
                 projects_text = self._format_professional_experience(cv_data.get("professional_experience", []))
 
+                if not projects_text:
+                    self._delete_paragraph(paragraph)
+                    continue
                 # Parse and add formatted text
                 self._add_formatted_text(paragraph, projects_text)
+
+    def _delete_paragraph(self, paragraph):
+        '''
+        Remove the paragraph from the document entirely
+        '''
+        p = paragraph._element
+        parent = p.getparent()
+        if parent is not None:
+            parent.remove(p)
 
     def _add_formatted_text(self, paragraph, text):
         """Add text with formatting markers to paragraph"""
