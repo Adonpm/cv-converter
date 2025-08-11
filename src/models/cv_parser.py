@@ -184,7 +184,7 @@ class CVParser:
             if cert_text and cert_text != "(To be completed)":
                 # Parse certification details
                 cert_info = {}
-                lines = cert_text.split("\n")
+                lines = [ln.strip() for ln in cert_text.split('\n') if ln.strip]
                 for line in lines:
                     line = line.strip()
                     if "Obtention date:" in line:
@@ -194,8 +194,9 @@ class CVParser:
                     elif "Programme:" in line:
                         cert_info["programme"] = line.replace("Programme:", "").strip()
                     
-                if cert_info:
-                    self.extracted_data["certifications"].append(cert_info)
+                    if cert_info.get("date") and cert_info.get("entity") and cert_info.get("programme"):
+                        self.extracted_data["certifications"].append(cert_info)
+                        cert_info = {}
                 
     def _extract_memberships(self, cells):
         """Extract professional memberships"""
@@ -203,17 +204,17 @@ class CVParser:
             membership_text = cells[1].strip()
             if membership_text and membership_text != "(To be completed)":
                 # Parse membership details
-                membership_info = {}
-                lines = membership_text.split('\n')
+                lines = [ln.strip() for ln in membership_text.split('\n') if ln.strip]
+                membership_info = {} # dict for the current membership
                 for line in lines:
-                    line = line.strip()
                     if "Obtention date:" in line:
                         membership_info["date"] = line.replace("Obtention date:", "").strip()
                     elif "Programme:" in line:
                         membership_info["programme"] = line.replace("Programme:", "").strip()
-                
-                if membership_info:
-                    self.extracted_data["professional_memberships"].append(membership_info)
+
+                    if membership_info.get("programme") and membership_info.get("date"):
+                        self.extracted_data["professional_memberships"].append(membership_info)
+                        membership_info = {}
 
     def _extract_software(self, cells):
         """Extract software information"""

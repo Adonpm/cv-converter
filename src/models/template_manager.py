@@ -274,10 +274,10 @@ class TemplateManager:
                 if cert.get("programme"):
                     cert_text.append(cert["programme"])
                 if cert.get("entity"):
-                    cert_text.append(f"({cert['entity']})")
+                    cert_text.append(f" ({cert['entity']})")
                 if cert.get("date"):
                     cert_text.append(f", {cert['date']}")
-                formatted.append(" ".join(cert_text))
+                formatted.append("".join(cert_text))
             else:
                 formatted.append(str(cert))
         
@@ -296,10 +296,9 @@ class TemplateManager:
                     membership_text.append(membership["programme"])
                 if membership.get("date"):
                     membership_text.append(f", {membership['date']}")
-                formatted.append(" ".join(membership_text))
+                formatted.append("".join(membership_text))
             else:
                 formatted.append(str(membership))
-        
         return "\n".join([f"● {membership}" for membership in formatted])
 
     def _format_professional_experience(self, experience_list):
