@@ -6,6 +6,7 @@ from pathlib import Path
 from utils.config import Config
 import shutil
 from docx.shared import Pt
+import re
 
 class TemplateManager:
     def __init__(self):
@@ -343,14 +344,27 @@ class TemplateManager:
         for exp in experience_list:
             exp_parts = []
             # Add role and company
-            if exp.get("duration_period"):
-                exp_parts.append(exp['duration_period'])
             if exp.get("employee_company"):
                 exp_parts.append(exp['employee_company'])
+            if exp.get("start_date"):
+                full_years = re.findall(r'\b(?:19|20)\d{2}\b', exp.get("start_date") or "")
+                start_year = None
+                end_year = None
+                if full_years:
+                    if len(full_years) >= 1:
+                        start_year = full_years[0]
+                    if len(full_years) >= 2:
+                        end_year = full_years[1]
+                    if end_year is None:
+                        end_year = "Present"
+                    time_period = f"{start_year} - {end_year}"
+                    exp_parts.append(time_period)
+                else:
+                    exp_parts.append(exp.get("start_date"))
             
             # Combine header and description
             if exp_parts:
-                formatted.append(" at ".join(exp_parts))
+                formatted.append(" ".join(exp_parts))
         
         return "\n".join([f"●   {exp}" for exp in formatted]) 
 
