@@ -24,6 +24,7 @@ def build_executable():
         # Include data files in .exe
         f"--add-data={project_root/"templates"};templates",  # Template files stored to .exe
         f"--add-data={project_root/"assets"};assets",        # Asset files stored to .exe 
+        f"--add-data={project_root/"config"};config",        # config files stored to .exe
 
         # Icon (if available)
         # f"--icon={project_root / 'assets' / 'icon.ico'}",
