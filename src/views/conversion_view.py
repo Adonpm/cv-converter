@@ -63,7 +63,7 @@ class ConversionView:
 
         # Font family
         ttk.Label(format_frame, text="Font Family:").grid(row=0, column=0, sticky="w", pady=2)
-        self.font_family_var = tk.StringVar(value="Arial")
+        self.font_family_var = tk.StringVar(value=self.controller.get("font_family"))
         font_combo = ttk.Combobox(
             format_frame, 
             textvariable=self.font_family_var,
@@ -74,7 +74,7 @@ class ConversionView:
 
         # Font size
         ttk.Label(format_frame, text="Font Size:").grid(row=1, column=0, sticky="w", pady=2)
-        self.font_size_var = tk.StringVar(value="11")
+        self.font_size_var = tk.StringVar(value=self.controller.get("font_size"))
         size_combo = ttk.Combobox(
             format_frame,
             textvariable=self.font_size_var,
@@ -89,12 +89,12 @@ class ConversionView:
         client_frame.grid_columnconfigure(1, weight=1)
         
         ttk.Label(client_frame, text="Client:").grid(row=0, column=0, sticky="w", pady=2)
-        self.client_var = tk.StringVar()
+        self.client_var = tk.StringVar(value=self.controller.get("client_name"))
         client_entry = ttk.Entry(client_frame, textvariable=self.client_var)
         client_entry.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=2)
         
         ttk.Label(client_frame, text="Opportunity:").grid(row=1, column=0, sticky="w", pady=2)
-        self.opportunity_var = tk.StringVar()
+        self.opportunity_var = tk.StringVar(value=self.controller.get("opportunity_name"))
         opportunity_entry = ttk.Entry(client_frame, textvariable=self.opportunity_var)
         opportunity_entry.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=2)
 

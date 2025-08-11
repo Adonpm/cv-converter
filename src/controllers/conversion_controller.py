@@ -22,6 +22,10 @@ class ConversionController:
         """Get list of available templates"""
         return self.template_manager.get_template_list()
     
+    def get(self, key):
+        """Load settings from settings file"""
+        return self.settings_model.get(key)
+    
     def convert_cvs(self, input_files, settings):
         """Convert multiple CVs"""
         if not input_files:
