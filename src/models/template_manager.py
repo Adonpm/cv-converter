@@ -66,7 +66,7 @@ class TemplateManager:
 
         # Update headers and footers
         for section in doc.sections:
-            self._update_header_footer(section, cv_data, formatting_options)
+            self._update_header_footer(section, formatting_options)
 
     def _replace_placeholders(self, paragraph, cv_data, formatting_options):
         """Replace placeholders in paragraph text"""
@@ -367,7 +367,7 @@ class TemplateManager:
         
         return "\n".join([f"●   {exp}" for exp in formatted]) 
 
-    def _update_header_footer(self, section, cv_data, formatting_options):
+    def _update_header_footer(self, section, formatting_options):
         """Update header and footer with optional client/opportunity info from tkinter interface"""
         client = formatting_options.get("client_name", "")
         opportunity = formatting_options.get("opportunity_name", "")
