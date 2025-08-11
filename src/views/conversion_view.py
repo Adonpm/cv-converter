@@ -57,7 +57,7 @@ class ConversionView:
         self.template_combo.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0,10))
 
         # Formatting options
-        format_frame = ttk.LabelFrame(main_frame, text="Formatting options", padding=10)
+        format_frame = ttk.LabelFrame(main_frame, text="Formatting Options", padding=10)
         format_frame.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(0,10))
         format_frame.grid_columnconfigure(1, weight=1)
 
