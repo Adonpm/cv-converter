@@ -134,7 +134,7 @@ class CVParser:
     
     def _extract_education_cell(self, cell):
         # Defensive: ensure we have a docx cell
-        if not hasattr(cell, "tables"):
+        if not hasattr(cell, "tables") or not hasattr(cell, "paragraphs"):
             raise TypeError("Expected a python-docx cell object; got a non-cell value")
         
         entry_final = []
@@ -159,6 +159,21 @@ class CVParser:
 
             row_vals_dict = entry 
             entry_final.append(row_vals_dict)
+
+        # Adding year extraction
+        year_re = re.compile(r'^\s*(\d{4})(?:\s*-\s*(\d{4}))?\s*$')
+        years_list = []
+        for p in cell.paragraphs:
+            txt = p.text.strip()
+            m = year_re.match(txt)
+            if not m:
+                continue
+            if m.group(2):
+                years_list.append(f"{m.group(1)}-{m.group(2)}") # prints "2017-2020"
+            else: 
+                years_list.append(f"{m.group(1)}") # prints "2022"
+        for i in range(len(years_list)):
+            entry_final[i]["year"] = years_list[i]
 
         self.extracted_data["education"] = entry_final
   

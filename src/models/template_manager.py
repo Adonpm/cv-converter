@@ -233,8 +233,8 @@ class TemplateManager:
                     cert_text.append(edu["Certificate/Diploma"])
                 if edu.get("School/University"):
                     cert_text.append(edu["School/University"])
-                #if edu.get("Specialisation"):
-                    #cert_text.append(f"- {edu["Specialisation"]}")
+                if edu.get("year"):
+                    cert_text.append(edu["year"])
                 formatted.append(", ".join(cert_text))
             else:
                 formatted.append(str(edu))
