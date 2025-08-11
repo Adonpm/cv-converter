@@ -82,7 +82,7 @@ class MainWindow:
         logo_label = ttk.Label(
             content_frame,
             text="📄",  # Document conversion icon
-            font=("Arial", 48)
+            font=("Arial", 85)
         )
         logo_label.grid(row=0, column=0, pady=(0, 20))
 
@@ -109,11 +109,11 @@ class MainWindow:
         features_frame.grid(row=3, column=0, pady=10)
 
         ttk.Label(features_frame, text="✨ Multiple template support", 
-                font=("Arial", 10)).grid(row=0, column=0, pady=2)
+                font=("Arial", 10)).grid(row=0, column=0, padx=10)
         ttk.Label(features_frame, text="🎨 Customizable formatting", 
-                font=("Arial", 10)).grid(row=1, column=0, pady=2)
+                font=("Arial", 10)).grid(row=0, column=1, padx=10)
         ttk.Label(features_frame, text="📁 Batch processing", 
-                font=("Arial", 10)).grid(row=2, column=0, pady=2)
+                font=("Arial", 10)).grid(row=0, column=2, padx=10)
 
     def clear_content(self):
         '''Clear the content frame'''
