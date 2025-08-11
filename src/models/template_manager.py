@@ -363,7 +363,7 @@ class TemplateManager:
             
             # Combine header and description
             if exp_parts:
-                formatted.append(" ".join(exp_parts))
+                formatted.append(", ".join(exp_parts))
         
         return "\n".join([f"●   {exp}" for exp in formatted]) 
 
