@@ -73,7 +73,7 @@ class TemplateManager:
 
         # Define placeholder mappings
         placeholders = {
-            "{{NAME}}": cv_data.get("name", "") or "",
+            "{{NAME}}": (cv_data.get("name", "") or "").upper(),
             "{{TITLE}}": cv_data.get("current_position", "") or "",
             "{{SUMMARY}}": cv_data.get("summary", "") or "",
             "{{YEARS OF EXPERIENCE}}": cv_data.get("years_experience", "") or "", 
