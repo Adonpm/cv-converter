@@ -22,6 +22,10 @@ class ConversionController:
         """Get list of available templates"""
         return self.template_manager.get_template_list()
     
+    def load_templates(self):
+        """Load available templates"""
+        return self.template_manager.load_templates()
+    
     def get(self, key):
         """Load settings from settings file"""
         return self.settings_model.get(key)
@@ -90,9 +94,6 @@ class ConversionController:
                             cv_data,
                             output_file,
                             formatting_options
-                            ###################################
-                            # Add logic to handle client and opportunity names from tkinter
-                            ####################################
                         )
 
                         successful_conversions += 1
