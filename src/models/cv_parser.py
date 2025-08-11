@@ -283,11 +283,26 @@ class CVParser:
                     experience_entry["start_date"] = parts[1].strip()
                 if len(parts) >= 3:
                     experience_entry["duration_period"] = parts[2].strip()
+                if experience_entry["start_date"] is not None and experience_entry["duration_period"] is not None:
+                    start_year = re.findall(r'\b(?:19|20)\d{2}\b', experience_entry["start_date"])[0]
+                    duration_split_words = experience_entry["duration_period"].split(" ")
+                    duration_timeperiod_years = duration_split_words[0]
+                    end_year = int(start_year) + int(duration_timeperiod_years)
+                    end_year = str(end_year)
+                    experience_entry["duration_period_year"] = f"{start_year} to {end_year}"
+
             elif "Duration" in duration_text:
                 parts = re.split(r'Duration:', duration_text)
                 if len(parts) >= 2:
                     experience_entry["start_date"] = parts[0].strip()
                     experience_entry["duration_period"] = parts[1].strip()
+                if experience_entry["start_date"] is not None and experience_entry["duration_period"] is not None:
+                    start_year = re.findall(r'\b(?:19|20)\d{2}\b', experience_entry["start_date"])[0]
+                    duration_split_words = experience_entry["duration_period"].split(" ")
+                    duration_timeperiod_years = duration_split_words[0]
+                    end_year = int(start_year) + int(duration_timeperiod_years)
+                    end_year = str(end_year)
+                    experience_entry["duration_period_year"] = f"{start_year} - {end_year}"
 
             if "Location" in job_text and "Client name" in job_text and "Detailed project description" in job_text and "Detailed description of the expert mission (on this project)" in job_text and "Technical expertise" in job_text:
                 raw_parts = re.split(r'Project title:|Location:|Client name:|Detailed project description:|Detailed description of the expert mission \(on this project\):|Technical expertise:', job_text)

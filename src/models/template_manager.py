@@ -276,7 +276,7 @@ class TemplateManager:
                 if cert.get("entity"):
                     cert_text.append(f"({cert['entity']})")
                 if cert.get("date"):
-                    cert_text.append(f"- {cert['date']}")
+                    cert_text.append(f", {cert['date']}")
                 formatted.append(" ".join(cert_text))
             else:
                 formatted.append(str(cert))
@@ -316,8 +316,8 @@ class TemplateManager:
                 header_parts.append(exp['experience_header'])
             if exp.get("client"):
                 header_parts.append(exp['client'])
-            if exp.get("duration_period"):
-                header_parts.append(exp['duration_period'])
+            if exp.get("duration_period_year"):
+                header_parts.append(exp['duration_period_year'])
 
             # Join header parts with commas
             if header_parts:
