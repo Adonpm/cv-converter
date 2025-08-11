@@ -48,7 +48,7 @@ class ConversionView:
         template_label = ttk.Label(main_frame, text="Template:", font=("Arial", 12, "bold"))
         template_label.grid(row=2, column=0, sticky="w", pady=(10, 5))
 
-        self.template_var = tk.StringVar()
+        self.template_var = tk.StringVar(value = self.controller.get("default_template"))
         self.template_combo = ttk.Combobox(
             main_frame,
             textvariable=self.template_var,
