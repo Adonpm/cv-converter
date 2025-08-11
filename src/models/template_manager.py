@@ -79,10 +79,7 @@ class TemplateManager:
             "{{YEARS OF EXPERIENCE}}": cv_data.get("years_experience", "") or "", 
             "{{EXPERIENCE SUMMARY}}": self._format_professional_experience_summary(cv_data.get("professional_experience_summary", [])),
             "{{EDUCATION}}": self._format_education(cv_data.get("education", [])),
-            ########################################################
-            #"{{SKILLS}}": self._format_skills(cv_data.get("skills", [])), 
             "{{SKILLS}}": self._format_skills(cv_data.get("professional_experience", [])), 
-            ########################################################
             "{{MEMBERSHIPS}}": self._format_memberships(cv_data.get("professional_memberships", [])),
             "{{CERTIFICATIONS}}": self._format_certifications(cv_data.get("certifications", [])),
             "{{PROJECTS}}": self._format_professional_experience(cv_data.get("professional_experience", []))
