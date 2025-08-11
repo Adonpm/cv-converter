@@ -372,12 +372,41 @@ class TemplateManager:
         client = formatting_options.get("client_name", "")
         opportunity = formatting_options.get("opportunity_name", "")
         # Update footer
-        if section.footer:
-            for paragraph in section.footer.paragraphs:
-                text = paragraph.text
-                if "{{CLIENT}}" in text:
+
+        def replace_in_paragraph(paragraph):
+            # Recompose full text from runs to handle split placeholders
+            full_text = "".join(run.text for run in paragraph.runs) if paragraph.runs else paragraph.text
+
+            #if not full_text:
+                #return 
+            if "{{CLIENT}}" in full_text or "{{OPPORTUNITY}}" in full_text:
+                new_text = full_text.replace("{{CLIENT}}", client).replace("{{OPPORTUNITY}}", opportunity)
+                # Clear existing runs and write back once
+                for r in paragraph.runs:
+                    r.text = ""
+                if paragraph.runs:
+                    # If at least one run exists, reuse the first run
+                    paragraph.text = new_text
+                else:
                     paragraph.clear()
-                    paragraph.add_run(text.replace("{{CLIENT}}", client))
-                if "{{OPPORTUNITY}}" in text:
-                    paragraph.clear()
-                    paragraph.add_run(text.replace("{{OPPORTUNITY}}", opportunity))
+                    paragraph.add_run(new_text)
+
+        def process_footer(footer_obj):
+            if not footer_obj:
+                return
+            # Plain paragraphs
+            for p in footer_obj.paragraphs:
+                replace_in_paragraph(p)
+            # Paragraphs inside tables
+            for tbl in footer_obj.tables:
+                for row in tbl.rows:
+                    for cell in row.cells:
+                        for p in cell.paragraphs:
+                            replace_in_paragraph(p)
+
+        # Primary footer
+        process_footer(section.footer)
+        if hasattr(section, "first_page_footer") and section.first_page_footer:
+            process_footer(section.first_page_footer)
+        if hasattr(section, "even_page_footer") and section.even_page_footer:
+            process_footer(section.even_page_footer)
