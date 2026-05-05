@@ -14,7 +14,7 @@ def build_executable():
     # PyInstaller arguments
     args = [
         str(project_root/"src"/"main.py"),   # Main script
-        "--onefile",                         # Create a standalone .exe file
+        "--onedir",                          # Output as folder instead of single .exe (reduces AV false positives)
         "--windowed",                        # No console window
         "--name=CV-Converter",               # Executable name
         f"--distpath={project_root/"dist"}", # Output directory (.exe is stored here)
