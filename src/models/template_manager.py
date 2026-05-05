@@ -260,15 +260,12 @@ class TemplateManager:
                 if original_font_info.get('color'):
                     run.font.color.rgb = original_font_info['color']
 
-                ############################################################
                 # Apply font formatting to all placeholders
-                '''
                 if formatting_options.get("font_family"):
                     run.font.name = formatting_options["font_family"]
                 if formatting_options.get("font_size"):
                     run.font.size = Pt(formatting_options["font_size"])
-                '''
-                ############################################################
+
             elif placeholder in text and placeholder == "{{PROJECTS}}":
                 projects_text = self._format_professional_experience(cv_data.get("professional_experience", []))
 
@@ -276,7 +273,7 @@ class TemplateManager:
                     self._delete_paragraph(paragraph)
                     continue
                 # Parse and add formatted text
-                self._add_formatted_text(paragraph, projects_text)
+                self._add_formatted_text(paragraph, projects_text, formatting_options)
 
     def _delete_paragraph(self, paragraph):
         '''
@@ -287,10 +284,11 @@ class TemplateManager:
         if parent is not None:
             parent.remove(p)
 
-    def _add_formatted_text(self, paragraph, text):
+    def _add_formatted_text(self, paragraph, text, formatting_options=None):
         """Add text with formatting markers to paragraph"""
-        import re
-        
+
+        formatting_options = formatting_options or {}
+
         original_style = paragraph.style
         original_font_info = {}
     
@@ -315,11 +313,17 @@ class TemplateManager:
                 if part:
                     run = paragraph.add_run(part)
 
-                    # Apply original font formatting + explicitly not bold
-                    if original_font_info.get('name'):
+                    # Apply user selected font (fallback to original font formatting) + explicitly not bold
+                    if formatting_options.get("font_family"):
+                        run.font.name = formatting_options["font_family"]
+                    elif original_font_info.get('name'):
                         run.font.name = original_font_info['name']
-                    if original_font_info.get('size'):
+                    
+                    if formatting_options.get("font_size"):
+                        run.font.size = Pt(formatting_options["font_size"])
+                    elif original_font_info.get('size'):
                         run.font.size = original_font_info['size']
+
                     if original_font_info.get('color'):
                         run.font.color.rgb = original_font_info['color']
                     if original_font_info.get('italic') is not None:
@@ -332,11 +336,17 @@ class TemplateManager:
                 if part:
                     bold_run = paragraph.add_run(part)
 
-                    # Apply original font formatting + make bold
-                    if original_font_info.get('name'):
+                    # Apply user selected font (fallback to original font formatting) + make bold
+                    if formatting_options.get("font_family"):
+                        bold_run.font.name = formatting_options["font_family"]
+                    elif original_font_info.get('name'):
                         bold_run.font.name = original_font_info['name']
-                    if original_font_info.get('size'):
+
+                    if formatting_options.get("font_size"):
+                        bold_run.font.size = Pt(formatting_options["font_size"])
+                    elif original_font_info.get('size'):
                         bold_run.font.size = original_font_info['size']
+
                     if original_font_info.get('color'):
                         bold_run.font.color.rgb = original_font_info['color']
                     if original_font_info.get('italic') is not None:
