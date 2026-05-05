@@ -7,6 +7,9 @@ from utils.config import Config
 import shutil
 from docx.shared import Pt
 import re
+from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
+from docx.oxml import OxmlElement
 
 class TemplateManager:
     def __init__(self):
@@ -53,10 +56,27 @@ class TemplateManager:
 
     def _populate_template(self, doc, cv_data, formatting_options):
         """Populate template with CV data"""
-        # Replace placeholders in paragraphs
+
+        # Handle {{PROJECTS}} first — replaces single paragraph with multiple
+        # properly styled paragraphs instead of cramming all content into one
+        for paragraph in doc.paragraphs:
+            if '{{PROJECTS}}' in paragraph.text:
+                self._insert_projects_as_paragraphs(paragraph, cv_data, formatting_options)
+                break  # paragraph list is now modified, stop iterating
+
+        # Replace placeholders in remaining paragraphs
         for paragraph in doc.paragraphs:
             self._replace_placeholders(paragraph, cv_data, formatting_options)
         
+        # Replace placeholders inside text boxes (floating shapes)
+        WPS_TXBX = '{http://schemas.microsoft.com/office/word/2010/wordprocessingShape}txbx'
+        W_P = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p'
+        for shape in doc.element.body.iter(WPS_TXBX):
+            for p_elem in shape.iter(W_P):
+                # Use doc.element as parent to avoid NoneType 'part' error
+                paragraph = Paragraph(p_elem, doc)
+                self._replace_placeholders(paragraph, cv_data, formatting_options)
+
         # Replace placeholders in tables
         for table in doc.tables:
             for row in table.rows:
@@ -67,6 +87,114 @@ class TemplateManager:
         # Update headers and footers
         for section in doc.sections:
             self._update_header_footer(section, formatting_options)
+
+    def _make_paragraph_element(self, style_val):
+        """Create a new <w:p> element with the given Word style."""
+        p = OxmlElement('w:p')
+        pPr = OxmlElement('w:pPr')
+        pStyle = OxmlElement('w:pStyle')
+        pStyle.set(qn('w:val'), style_val)
+        pPr.append(pStyle)
+        p.append(pPr)
+        return p
+
+    def _make_run_element(self, text, bold=False, formatting_options=None):
+        """Create a <w:r> run element with user-specified or default Calibri 11pt font."""
+        
+        formatting_options = formatting_options or {}
+
+        r = OxmlElement('w:r')
+        rPr = OxmlElement('w:rPr')
+
+        # Font family — use user choice or fall back to Calibri
+        fonts = OxmlElement('w:rFonts')
+        font_name = formatting_options.get("font_family", "Calibri")
+        fonts.set(qn('w:cs'), font_name)
+        fonts.set(qn('w:ascii'), font_name)      # covers standard western text
+        fonts.set(qn('w:hAnsi'), font_name)      # covers high ANSI range text
+        rPr.append(fonts)
+
+        if bold:
+            b = OxmlElement('w:b')
+            rPr.append(b)
+
+        sz = OxmlElement('w:sz')
+        font_size = formatting_options.get("font_size", 11)
+        sz.set(qn('w:val'), str(font_size * 2))  # convert pt to half-points
+        rPr.append(sz)
+
+        r.append(rPr)
+        
+        t = OxmlElement('w:t')
+        t.text = text
+        t.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
+        r.append(t)
+        return r
+
+    def _insert_projects_as_paragraphs(self, projects_paragraph, cv_data, formatting_options):
+        """
+        Replace the single {{PROJECTS}} paragraph with individual properly-styled
+        paragraphs — one CV h3 bold header + one cv text description per project.
+        This fixes the column overflow issue caused by dumping all projects into
+        one paragraph.
+        """
+        experience_list = cv_data.get("professional_experience", [])
+        parent = projects_paragraph._element.getparent()
+        projects_p = projects_paragraph._element
+        insert_position = list(parent).index(projects_p)
+
+        new_elements = []
+        for exp in experience_list:
+            header_parts = []
+            if exp.get("experience_header"):
+                header_parts.append(exp["experience_header"])
+            if exp.get("client"):
+                header_parts.append(exp["client"])
+            if exp.get("duration_period_year"):
+                header_parts.append(exp["duration_period_year"])
+            header_text = ", ".join(header_parts)
+            description = exp.get("expert_mission_description", "").strip()
+
+            if header_text:
+                h_p = self._make_paragraph_element("CVh3")
+                h_p.append(self._make_run_element(header_text, bold=True, formatting_options=formatting_options))
+                new_elements.append(h_p)
+            if description:
+                d_p = self._make_paragraph_element("cvtext")
+                d_p.append(self._make_run_element(description, bold=False, formatting_options=formatting_options))
+                new_elements.append(d_p)
+
+        for i, elem in enumerate(new_elements):
+            parent.insert(insert_position + i, elem)
+        parent.remove(projects_p)
+
+        # Move the text box anchor paragraph to just after Para[0] ({{NAME}})
+        # so it anchors to page 1 instead of the last page
+        self._move_textbox_to_page_one(parent)
+
+    def _move_textbox_to_page_one(self, body):
+        """
+        Find the paragraph containing the floating text box and move it
+        to just after the first paragraph ({{NAME}}) so it anchors to page 1.
+        """
+        WPS_TXBX = '{http://schemas.microsoft.com/office/word/2010/wordprocessingShape}txbx'
+        
+        # Find the paragraph containing the text box
+        txbx_para = None
+        for child in body:
+            if child.tag == '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p':
+                if any(el.tag == WPS_TXBX for el in child.iter()):
+                    txbx_para = child
+                    break
+        
+        if txbx_para is None:
+            return  # No text box found, nothing to do
+        
+        # Remove from current position
+        body.remove(txbx_para)
+        
+        # Insert at position 1 — just after the first paragraph ({{NAME}})
+        body.insert(1, txbx_para)
 
     def _replace_placeholders(self, paragraph, cv_data, formatting_options):
         """Replace placeholders in paragraph text"""
