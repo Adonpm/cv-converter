@@ -79,7 +79,7 @@ class SettingsView:
         font_family_combo = ttk.Combobox(
             font_frame,
             textvariable=self.font_family_var,
-            values=["Arial", "Calibri", "Times New Roman", "Helvetica", "Tahoma"],
+            values=["Arial", "Calibri", "Times New Roman", "Helvetica", "Tahoma", "Lato"],
             state="readonly"
         ) 
         font_family_combo.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)

@@ -68,7 +68,7 @@ class ConversionView:
         font_combo = ttk.Combobox(
             format_frame, 
             textvariable=self.font_family_var,
-            values=["Arial", "Calibri", "Times New Roman", "Helvetica"],
+            values=["Arial", "Calibri", "Times New Roman", "Helvetica", "Tahoma", "Lato"],
             state="readonly"
         )
         font_combo.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=2)
