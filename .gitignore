@@ -6,3 +6,5 @@ CV-Converter.spec
 CV-Converter.exe
 templates/
 SS/
+dist/CV-Converter/*
+!dist/CV-Converter/*.exe
