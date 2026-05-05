@@ -205,6 +205,7 @@ class TemplateManager:
             "{{NAME}}": (cv_data.get("name", "") or "").upper(),
             "{{TITLE}}": cv_data.get("current_position", "") or "",
             "{{SUMMARY}}": cv_data.get("summary", "") or "",
+            "{{HOME}}": cv_data.get("nationality", "") or "No data available",
             "{{YEARS OF EXPERIENCE}}": cv_data.get("years_experience", "") or "", 
             "{{EXPERIENCE SUMMARY}}": self._format_professional_experience_summary(cv_data.get("professional_experience_summary", [])),
             "{{EDUCATION}}": self._format_education(cv_data.get("education", [])),
