@@ -262,10 +262,11 @@ class TemplateManager:
                     run.font.color.rgb = original_font_info['color']
 
                 # Apply font formatting to all placeholders
-                if formatting_options.get("font_family"):
-                    run.font.name = formatting_options["font_family"]
-                if formatting_options.get("font_size"):
-                    run.font.size = Pt(formatting_options["font_size"])
+                if placeholder != "{{NAME}}":
+                    if formatting_options.get("font_family"):
+                        run.font.name = formatting_options["font_family"]
+                    if formatting_options.get("font_size"):
+                        run.font.size = Pt(formatting_options["font_size"])
 
             elif placeholder in text and placeholder == "{{PROJECTS}}":
                 projects_text = self._format_professional_experience(cv_data.get("professional_experience", []))
