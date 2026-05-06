@@ -253,8 +253,9 @@ class SettingsView:
         """Save current settings"""
         try:
             # Validate font size
-            font_size = int(self.font_size_var.get())
-            if font_size < 6 or font_size > 72:
+            font_size_val = self.font_size_var.get()
+            font_size = int(font_size_val) if font_size_val else ""
+            if font_size and (font_size < 6 or font_size > 72):
                 raise ValueError("Font size must be between 6 and 72.")
             
             # Validate output directory

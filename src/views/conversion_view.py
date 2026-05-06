@@ -155,10 +155,11 @@ class ConversionView:
             return
         
         # Prepare conversion settings
+        font_size_val = self.font_size_var.get()
         settings = {
             "template": self.template_var.get(),
             "font_family": self.font_family_var.get(),
-            "font_size": int(self.font_size_var.get()),
+            "font_size": int(font_size_val) if font_size_val else "",
             "client_name": self.client_var.get(),
             "opportunity_name": self.opportunity_var.get()
         }
