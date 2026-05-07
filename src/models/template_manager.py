@@ -98,30 +98,44 @@ class TemplateManager:
         p.append(pPr)
         return p
 
-    def _make_run_element(self, text, bold=False, formatting_options=None):
-        """Create a <w:r> run element with user-specified or default Calibri 11pt font."""
+    def _make_run_element(self, text, bold=False, formatting_options=None, template_font_info=None):
+        """Create a <w:r> run element with user-specified font or template font fallback."""
         
         formatting_options = formatting_options or {}
+        template_font_info = template_font_info or {}
 
         r = OxmlElement('w:r')
         rPr = OxmlElement('w:rPr')
 
-        # Font family — use user choice or fall back to Calibri
-        fonts = OxmlElement('w:rFonts')
-        font_name = formatting_options.get("font_family", "Calibri")
-        fonts.set(qn('w:cs'), font_name)
-        fonts.set(qn('w:ascii'), font_name)      # covers standard western text
-        fonts.set(qn('w:hAnsi'), font_name)      # covers high ANSI range text
-        rPr.append(fonts)
+        # Font family — user choice wins, else template font, else nothing
+        font_name = formatting_options.get("font_family", "")
+        if font_name:
+            fonts = OxmlElement('w:rFonts')
+            fonts.set(qn('w:cs'), font_name)
+            fonts.set(qn('w:ascii'), font_name)
+            fonts.set(qn('w:hAnsi'), font_name)
+            rPr.append(fonts)
+        elif template_font_info.get('name'):
+            fonts = OxmlElement('w:rFonts')
+            fonts.set(qn('w:cs'), template_font_info['name'])
+            fonts.set(qn('w:ascii'), template_font_info['name'])
+            fonts.set(qn('w:hAnsi'), template_font_info['name'])
+            rPr.append(fonts)
 
         if bold:
             b = OxmlElement('w:b')
             rPr.append(b)
 
-        sz = OxmlElement('w:sz')
-        font_size = formatting_options.get("font_size", 11)
-        sz.set(qn('w:val'), str(font_size * 2))  # convert pt to half-points
-        rPr.append(sz)
+        # Font size — user choice wins, else template size, else nothing
+        font_size = formatting_options.get("font_size", "")
+        if font_size:
+            sz = OxmlElement('w:sz')
+            sz.set(qn('w:val'), str(int(font_size) * 2))
+            rPr.append(sz)
+        elif template_font_info.get('size'):
+            sz = OxmlElement('w:sz')
+            sz.set(qn('w:val'), str(int(template_font_info['size'] / 12700) * 2))
+            rPr.append(sz)
 
         r.append(rPr)
         
@@ -138,6 +152,32 @@ class TemplateManager:
         This fixes the column overflow issue caused by dumping all projects into
         one paragraph.
         """
+        # Read font info from {{PROJECTS}} placeholder before replacing
+        template_font_info = {}
+        if projects_paragraph.runs:
+            first_run = projects_paragraph.runs[0]
+            template_font_info = {
+                'name': first_run.font.name,
+                'size': first_run.font.size,
+            }
+        
+        # If not on run, try paragraph style chain
+        if not template_font_info.get('name'):
+            style = projects_paragraph.style
+            while style:
+                if style.font.name:
+                    template_font_info['name'] = style.font.name
+                    break
+                style = style.base_style
+
+        if not template_font_info.get('size'):
+            style = projects_paragraph.style
+            while style:
+                if style.font.size:
+                    template_font_info['size'] = style.font.size
+                    break
+                style = style.base_style
+
         experience_list = cv_data.get("professional_experience", [])
         parent = projects_paragraph._element.getparent()
         projects_p = projects_paragraph._element
@@ -157,11 +197,21 @@ class TemplateManager:
 
             if header_text:
                 h_p = self._make_paragraph_element("CVh3")
-                h_p.append(self._make_run_element(header_text, bold=True, formatting_options=formatting_options))
+                h_p.append(self._make_run_element(
+                    header_text,
+                    bold=True,
+                    formatting_options=formatting_options,
+                    template_font_info=template_font_info
+                ))
                 new_elements.append(h_p)
             if description:
                 d_p = self._make_paragraph_element("cvtext")
-                d_p.append(self._make_run_element(description, bold=False, formatting_options=formatting_options))
+                d_p.append(self._make_run_element(
+                    description,
+                    bold=False,
+                    formatting_options=formatting_options,
+                    template_font_info=template_font_info
+                ))
                 new_elements.append(d_p)
 
         for i, elem in enumerate(new_elements):
@@ -200,6 +250,9 @@ class TemplateManager:
         """Replace placeholders in paragraph text"""
         text = paragraph.text
 
+        # If user selected blank for both, skip font override entirely
+        apply_custom_font = bool(formatting_options.get("font_family") or formatting_options.get("font_size"))
+
         # Define placeholder mappings
         placeholders = {
             "{{NAME}}": (cv_data.get("name", "") or "").upper(),
@@ -230,43 +283,51 @@ class TemplateManager:
 
                 # Store formatting before clearing
                 original_style = paragraph.style
-                original_font_info = {}
-                
-                if paragraph.runs:
-                    first_run = paragraph.runs[0]
-                    original_font_info = {
-                        'name': first_run.font.name,
-                        'size': first_run.font.size,
-                        'bold': first_run.bold,
-                        'italic': first_run.italic,
-                        'color': first_run.font.color.rgb if first_run.font.color and first_run.font.color.rgb else None
-                    }
 
-                # Clear existing text
-                paragraph.clear()
-                # Add new text
-                run = paragraph.add_run(text.replace(placeholder, safe_value))
+                # Replace text directly in XML text nodes — never touches formatting
+                W_T = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t'
+                full_text = "".join(
+                    el.text or "" 
+                    for el in paragraph._element.iter(W_T)
+                )
+                new_text = full_text.replace(placeholder, safe_value)
+
+                # Write new text — split on \n and add line breaks
+                W_BR = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}br'
+                t_elements = list(paragraph._element.iter(W_T))
+                if t_elements:
+                    first_t = t_elements[0]
+                    parent_r = first_t.getparent()  # <w:r> element
+                    
+                    # Clear all existing <w:t> elements
+                    for t in t_elements:
+                        t.text = ""
+                    
+                    # Split new text by newlines and insert <w:br/> between them
+                    lines = new_text.split('\n')
+                    first_t.text = lines[0]
+                    
+                    for line in lines[1:]:
+                        # Add line break
+                        br = OxmlElement('w:br')
+                        parent_r.append(br)
+                        # Add text after break
+                        t = OxmlElement('w:t')
+                        t.text = line
+                        t.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
+                        parent_r.append(t)
 
                 # Restore formatting
                 paragraph.style = original_style
-                
-                if original_font_info.get('name'):
-                    run.font.name = original_font_info['name']
-                if original_font_info.get('size'):
-                    run.font.size = original_font_info['size']
-                if original_font_info.get('bold') is not None:
-                    run.bold = original_font_info['bold']
-                if original_font_info.get('italic') is not None:
-                    run.italic = original_font_info['italic']
-                if original_font_info.get('color'):
-                    run.font.color.rgb = original_font_info['color']
 
                 # Apply font formatting to all placeholders
-                if placeholder != "{{NAME}}":
+                if placeholder != "{{NAME}}" and apply_custom_font:
                     if formatting_options.get("font_family"):
-                        run.font.name = formatting_options["font_family"]
+                        for r in paragraph.runs:
+                            r.font.name = formatting_options["font_family"]
                     if formatting_options.get("font_size"):
-                        run.font.size = Pt(formatting_options["font_size"])
+                        for r in paragraph.runs:
+                            r.font.size = Pt(int(formatting_options["font_size"]))
 
             elif placeholder in text and placeholder == "{{PROJECTS}}":
                 projects_text = self._format_professional_experience(cv_data.get("professional_experience", []))
@@ -288,8 +349,11 @@ class TemplateManager:
 
     def _add_formatted_text(self, paragraph, text, formatting_options=None):
         """Add text with formatting markers to paragraph"""
-
+        
         formatting_options = formatting_options or {}
+
+        # If user selected blank for both, skip font override entirely
+        apply_custom_font = bool(formatting_options.get("font_family") or formatting_options.get("font_size"))
 
         original_style = paragraph.style
         original_font_info = {}
@@ -303,6 +367,9 @@ class TemplateManager:
                 'color': first_run.font.color.rgb if first_run.font.color and first_run.font.color.rgb else None,
                 'italic': first_run.italic
             }
+        
+        # Set paragraph style BEFORE adding runs
+        paragraph.style = original_style
 
         # Clear existing text and formatting
         paragraph.clear()
@@ -316,15 +383,17 @@ class TemplateManager:
                     run = paragraph.add_run(part)
 
                     # Apply user selected font (fallback to original font formatting) + explicitly not bold
-                    if formatting_options.get("font_family"):
-                        run.font.name = formatting_options["font_family"]
-                    elif original_font_info.get('name'):
-                        run.font.name = original_font_info['name']
-                    
-                    if formatting_options.get("font_size"):
-                        run.font.size = Pt(formatting_options["font_size"])
-                    elif original_font_info.get('size'):
-                        run.font.size = original_font_info['size']
+                    if apply_custom_font:
+                        if formatting_options.get("font_family"):
+                            run.font.name = formatting_options["font_family"]
+                        if formatting_options.get("font_size"):
+                            run.font.size = Pt(int(formatting_options["font_size"]))
+                    else:
+                        # Restore from original run when blank selected
+                        if original_font_info.get('name'):
+                            run.font.name = original_font_info['name']
+                        if original_font_info.get('size'):
+                            run.font.size = original_font_info['size']
 
                     if original_font_info.get('color'):
                         run.font.color.rgb = original_font_info['color']
@@ -339,15 +408,17 @@ class TemplateManager:
                     bold_run = paragraph.add_run(part)
 
                     # Apply user selected font (fallback to original font formatting) + make bold
-                    if formatting_options.get("font_family"):
-                        bold_run.font.name = formatting_options["font_family"]
-                    elif original_font_info.get('name'):
-                        bold_run.font.name = original_font_info['name']
-
-                    if formatting_options.get("font_size"):
-                        bold_run.font.size = Pt(formatting_options["font_size"])
-                    elif original_font_info.get('size'):
-                        bold_run.font.size = original_font_info['size']
+                    if apply_custom_font:
+                        if formatting_options.get("font_family"):
+                            bold_run.font.name = formatting_options["font_family"]
+                        if formatting_options.get("font_size"):
+                            bold_run.font.size = Pt(int(formatting_options["font_size"]))
+                    else:
+                        # Restore from original run when blank selected
+                        if original_font_info.get('name'):
+                            bold_run.font.name = original_font_info['name']
+                        if original_font_info.get('size'):
+                            bold_run.font.size = original_font_info['size']
 
                     if original_font_info.get('color'):
                         bold_run.font.color.rgb = original_font_info['color']
@@ -357,9 +428,7 @@ class TemplateManager:
                     # Additional explicit setting
                     bold_run.bold = True
                     bold_run.font.bold = True  
-        
-        # Restore paragraph style
-        paragraph.style = original_style
+
 
     def _format_education(self, education_list):
         """Format education entries"""
