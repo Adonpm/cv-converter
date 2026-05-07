@@ -265,7 +265,9 @@ class TemplateManager:
             "{{SKILLS}}": self._format_skills(cv_data.get("professional_experience", [])), 
             "{{MEMBERSHIPS}}": self._format_memberships(cv_data.get("professional_memberships", [])),
             "{{CERTIFICATIONS}}": self._format_certifications(cv_data.get("certifications", [])),
-            "{{PROJECTS}}": self._format_professional_experience(cv_data.get("professional_experience", []))
+            "{{PROJECTS}}": self._format_professional_experience(cv_data.get("professional_experience", [])),
+            "{{CLIENT}}": formatting_options.get("client_name", "") or "",
+            "{{OPPORTUNITY}}": formatting_options.get("opportunity_name", "") or ""
         }
 
         # Replace placeholders
@@ -595,17 +597,15 @@ class TemplateManager:
         def replace_in_paragraph(paragraph):
             # Recompose full text from runs to handle split placeholders
             full_text = "".join(run.text for run in paragraph.runs) if paragraph.runs else paragraph.text
-
-            #if not full_text:
-                #return 
+            
             if "{{CLIENT}}" in full_text or "{{OPPORTUNITY}}" in full_text:
                 new_text = full_text.replace("{{CLIENT}}", client).replace("{{OPPORTUNITY}}", opportunity)
-                # Clear existing runs and write back once
-                for r in paragraph.runs:
-                    r.text = ""
+                
+                # Replace directly in runs like we do in _replace_placeholders
                 if paragraph.runs:
-                    # If at least one run exists, reuse the first run
-                    paragraph.text = new_text
+                    paragraph.runs[0].text = new_text
+                    for r in paragraph.runs[1:]:
+                        r.text = ""
                 else:
                     paragraph.clear()
                     paragraph.add_run(new_text)
