@@ -325,6 +325,16 @@ class TemplateManager:
                     if formatting_options.get("font_family"):
                         for r in paragraph.runs:
                             r.font.name = formatting_options["font_family"]
+                            # Remove theme font attributes that override explicit font name
+                            rFonts = r._element.find(qn('w:rPr') + '/' + qn('w:rFonts'))
+                            if rFonts is None:
+                                rPr = r._element.find(qn('w:rPr'))
+                                if rPr is not None:
+                                    rFonts = rPr.find(qn('w:rFonts'))
+                            if rFonts is not None:
+                                rFonts.attrib.pop(qn('w:asciiTheme'), None)
+                                rFonts.attrib.pop(qn('w:hAnsiTheme'), None)
+                                rFonts.attrib.pop(qn('w:cstheme'), None)
                     if formatting_options.get("font_size"):
                         for r in paragraph.runs:
                             r.font.size = Pt(int(formatting_options["font_size"]))
