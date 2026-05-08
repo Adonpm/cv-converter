@@ -17,8 +17,8 @@ class Config:
     ASSETS_DIR = BASE_DIR / "assets"
 
     # Default settings
-    DEFAULT_FONT_FAMILY = "Arial"
-    DEFAULT_FONT_SIZE = 11
+    DEFAULT_FONT_FAMILY = ""
+    DEFAULT_FONT_SIZE = ""
     DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
 
     # File types
