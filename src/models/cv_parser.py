@@ -4,6 +4,7 @@ CV Parser for extracting content from Whoz template CVs
 from docx import Document
 import re
 from pathlib import Path
+from docx.oxml.ns import qn
 
 class CVParser:
     def __init__(self):
@@ -86,7 +87,7 @@ class CVParser:
                 elif "LANGUAGES" in section_header:
                     self._extract_languages(cells)
                 elif "PROFESSIONAL EXPERIENCE" in section_header:
-                    self._extract_professional_experience(cells, row_num)
+                    self._extract_professional_experience(cells, row_num, raw_row=row)
                 elif "PUBLICATIONS" in section_header or "PROFESSIONAL AWARDS" in section_header:
                     self._extract_publications_professional_awards(cells)
 
@@ -252,7 +253,20 @@ class CVParser:
                             "level": lang_level
                         })
 
-    def _extract_professional_experience(self, cells, row_num):
+    @staticmethod
+    def _cell_text_with_bullets(cell):
+        """Extract cell text, prefixing Word-bulleted paragraphs with '• '"""
+        lines = []
+        for para in cell.paragraphs:
+            text = para.text.strip()
+            if not text:
+                continue
+            pPr = para._element.find(qn('w:pPr'))
+            is_bullet = pPr is not None and pPr.find(qn('w:numPr')) is not None
+            lines.append(f" • {text}" if is_bullet else text)
+        return "\n".join(lines)
+
+    def _extract_professional_experience(self, cells, row_num, raw_row=None):
         """Extract professional experience"""
         # Skip header row
         if row_num == 0:
@@ -261,8 +275,11 @@ class CVParser:
         if len(cells) >= 2:
             # First cell contains duration and dates
             duration_text = cells[0].strip()
-            # Second cell contains job details
-            job_text = cells[1].strip()
+            # Use bullet-aware extraction if raw row cells are available
+            if raw_row is not None:
+                job_text = self._cell_text_with_bullets(raw_row.cells[1])
+            else:
+                job_text = cells[1].strip()
 
             if duration_text and job_text and job_text != "(To be completed)":
                 experience_entry = {}

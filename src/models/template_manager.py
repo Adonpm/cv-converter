@@ -205,14 +205,32 @@ class TemplateManager:
                 ))
                 new_elements.append(h_p)
             if description:
-                d_p = self._make_paragraph_element("cvtext")
-                d_p.append(self._make_run_element(
-                    description,
-                    bold=False,
-                    formatting_options=formatting_options,
-                    template_font_info=template_font_info
-                ))
-                new_elements.append(d_p)
+                desc_lines = description.split('\n')
+                for line in desc_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    is_bullet = line.startswith(' • ')
+                    line_text = line[3:] if is_bullet else line
+
+                    if is_bullet:
+                        d_p = self._make_paragraph_element("cvtext")
+                        d_p.append(self._make_run_element(
+                            f" • {line_text}",   # <-- literal bullet char
+                            bold=False,
+                            formatting_options=formatting_options,
+                            template_font_info=template_font_info
+                        ))
+                    else:
+                        d_p = self._make_paragraph_element("cvtext")
+                        d_p.append(self._make_run_element(
+                            line_text,
+                            bold=False,
+                            formatting_options=formatting_options,
+                            template_font_info=template_font_info
+                        ))
+
+                    new_elements.append(d_p)
 
         for i, elem in enumerate(new_elements):
             parent.insert(insert_position + i, elem)
