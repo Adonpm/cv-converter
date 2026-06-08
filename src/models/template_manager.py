@@ -193,7 +193,16 @@ class TemplateManager:
             if exp.get("duration_period_year"):
                 header_parts.append(exp["duration_period_year"])
             header_text = ", ".join(header_parts)
-            description = exp.get("expert_mission_description", "").strip()
+            project_desc = exp.get("project_description", "").strip()
+            mission_desc = exp.get("expert_mission_description", "").strip()
+
+            # Combine with a blank line between them if both exist
+            if project_desc and mission_desc:
+                description = project_desc + "\n" + mission_desc
+            elif project_desc:
+                description = project_desc
+            else:
+                description = mission_desc
 
             if header_text:
                 h_p = self._make_paragraph_element("CVh3")
@@ -563,6 +572,8 @@ class TemplateManager:
                 exp_parts.append(f"**{header_line}**") # Mark for bold formatting
             
             # Add description
+            if exp.get("project_description"):
+                exp_parts.append(exp['project_description'])
             if exp.get("expert_mission_description"):
                 description = exp['expert_mission_description']
                 exp_parts.append(description)
