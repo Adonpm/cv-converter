@@ -29,6 +29,7 @@ class CVParser:
                 "languages": [],
                 "professional_experience": [],
                 "professional_experience_summary": [],
+                "external_experience": [],
                 "contact": {}, # Needs to address
                 "summary": "",
                 "publications_or_awards": []
@@ -291,6 +292,32 @@ class CVParser:
                 self.extracted_data["professional_experience"].append(experience_entry)
                 self.extracted_data["professional_experience_summary"].append(experience_summary_entry)
 
+    def _compute_end_year(self, start_date, duration_period):
+        """Compute the end year from a start date (expects a MM/YYYY substring)
+        and a duration string like '10 months', '1 year 10 months', '2 years'.
+        Correctly distinguishes years vs months instead of assuming the first
+        number in the duration is always a year count."""
+        year_match = re.findall(r'\b(?:19|20)\d{2}\b', start_date or "")
+        if not year_match:
+            return None
+        start_year = int(year_match[0])
+
+        month_of_start_match = re.search(r'(\d{1,2})/(\d{4})', start_date)
+        start_month = int(month_of_start_match.group(1)) if month_of_start_match else 1
+
+        y_match = re.search(r'(\d+)\s*year', duration_period or "")
+        m_match = re.search(r'(\d+)\s*month', duration_period or "")
+        years = int(y_match.group(1)) if y_match else 0
+        months = int(m_match.group(1)) if m_match else 0
+
+        if not y_match and not m_match:
+            # No recognizable unit — fall back to treating the first number as years
+            nums = re.findall(r'\d+', duration_period or "")
+            years = int(nums[0]) if nums else 0
+
+        total_month_index = start_year * 12 + (start_month - 1) + years * 12 + months
+        return str(total_month_index // 12)
+
     def _parse_job_details(self, experience_entry, experience_summary_entry, job_text, duration_text):
         """Parse detailed job information"""
         if "Project title" in job_text:
@@ -303,10 +330,7 @@ class CVParser:
                     experience_entry["duration_period"] = parts[2].strip()
                 if experience_entry["start_date"] is not None and experience_entry["duration_period"] is not None:
                     start_year = re.findall(r'\b(?:19|20)\d{2}\b', experience_entry["start_date"])[0]
-                    duration_split_words = experience_entry["duration_period"].split(" ")
-                    duration_timeperiod_years = duration_split_words[0]
-                    end_year = int(start_year) + int(duration_timeperiod_years)
-                    end_year = str(end_year)
+                    end_year = self._compute_end_year(experience_entry["start_date"], experience_entry["duration_period"])
                     experience_entry["duration_period_year"] = f"{start_year} to {end_year}"
 
             elif "Duration" in duration_text:
@@ -316,10 +340,7 @@ class CVParser:
                     experience_entry["duration_period"] = parts[1].strip()
                 if experience_entry["start_date"] is not None and experience_entry["duration_period"] is not None:
                     start_year = re.findall(r'\b(?:19|20)\d{2}\b', experience_entry["start_date"])[0]
-                    duration_split_words = experience_entry["duration_period"].split(" ")
-                    duration_timeperiod_years = duration_split_words[0]
-                    end_year = int(start_year) + int(duration_timeperiod_years)
-                    end_year = str(end_year)
+                    end_year = self._compute_end_year(experience_entry["start_date"], experience_entry["duration_period"])
                     experience_entry["duration_period_year"] = f"{start_year} - {end_year}"
 
             if "Location" in job_text and "Client name" in job_text and "Detailed project description" in job_text and "Detailed description of the expert mission (on this project)" in job_text and "Technical expertise" in job_text:
@@ -347,17 +368,40 @@ class CVParser:
                     experience_summary_entry["duration_period"] = parts[1].strip()
 
             if "Location" in job_text and "Description" in job_text:
-                parts = re.split(r'Location:|Description', job_text)
-                lines = parts[0].split('\n')
-                if len(lines) >= 2:
-                    experience_summary_entry["employee_company"] = lines[0].strip()
-                    experience_summary_entry["employee_position"] = lines[1].strip()
-                    experience_summary_entry["employee_location"] = parts[1].strip()
-                    experience_summary_entry["employee_description"] = parts[2].strip()
-                else:
-                    experience_summary_entry["employee_company"] = parts[0].strip()
-                    experience_summary_entry["employee_location"] = parts[1].strip()
-                    experience_summary_entry["employee_description"] = parts[2].strip()
+                parts = re.split(r'Location:|Description:', job_text)
+                header_lines = [ln.strip() for ln in parts[0].split('\n') if ln.strip()]
+                experience_summary_entry["employee_company"] = header_lines[0] if header_lines else ""
+                experience_summary_entry["employee_position"] = header_lines[1] if len(header_lines) >= 2 else ""
+                experience_summary_entry["employee_location"] = parts[1].strip() if len(parts) > 1 else ""
+                experience_summary_entry["employee_description"] = parts[2].strip() if len(parts) > 2 else ""
+
+                # NEW: also capture this as an "external" (non-SYSTRA) project entry
+                # so it can be rendered in {{PROJECTS}} with a red header.
+                company = experience_summary_entry["employee_company"]
+                if company and "systra" not in company.lower():
+                    position = experience_summary_entry["employee_position"]
+                    description = experience_summary_entry["employee_description"]
+                    start_date = experience_summary_entry.get("start_date", "") or ""
+
+                    years = re.findall(r'\b(?:19|20)\d{2}\b', start_date)
+                    if len(years) >= 2:
+                        date_range = f"{years[0]} to {years[1]}"
+                    elif len(years) == 1:
+                        date_range = years[0]
+                    else:
+                        date_range = start_date.strip()
+
+                    header_parts = [company]
+                    if position:
+                        header_parts.append(position)
+                    header_line = " - ".join(header_parts)
+                    if date_range:
+                        header_line += f", {date_range}"
+
+                    self.extracted_data["external_experience"].append({
+                        "header": header_line,
+                        "description": description
+                    })
 
     def _extract_publications_professional_awards(self, cells):
         """Extract Publications or Awards"""

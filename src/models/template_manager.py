@@ -5,7 +5,7 @@ from docx import Document
 from pathlib import Path
 from utils.config import Config
 import shutil
-from docx.shared import Pt
+from docx.shared import Pt, RGBColor
 import re
 from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
@@ -98,14 +98,23 @@ class TemplateManager:
         p.append(pPr)
         return p
 
-    def _make_run_element(self, text, bold=False, formatting_options=None, template_font_info=None):
-        """Create a <w:r> run element with user-specified font or template font fallback."""
+    def _make_run_element(self, text, bold=False, color=None, formatting_options=None, template_font_info=None):
+        """Create a <w:r> run element with user-specified font or template font fallback.
+
+        color: optional hex string (e.g. "C00000") to set explicit font color,
+        used to flag external (non-SYSTRA) experience headers in red.
+        """
         
         formatting_options = formatting_options or {}
         template_font_info = template_font_info or {}
 
         r = OxmlElement('w:r')
         rPr = OxmlElement('w:rPr')
+
+        if color:
+            c = OxmlElement('w:color')
+            c.set(qn('w:val'), color)
+            rPr.append(c)
 
         # Font family — user choice wins, else template font, else nothing
         font_name = formatting_options.get("font_family", "")
@@ -241,6 +250,39 @@ class TemplateManager:
 
                     new_elements.append(d_p)
 
+        # NEW: append external (non-SYSTRA) experience after the SYSTRA projects,
+        # same paragraph styles, but header rendered in red instead of bold.
+        for ext in cv_data.get("external_experience", []):
+            header_text = ext.get("header", "")
+            description = ext.get("description", "")
+
+            if header_text:
+                h_p = self._make_paragraph_element("CVh3")
+                h_p.append(self._make_run_element(
+                    header_text,
+                    bold=False,
+                    color="C00000",
+                    formatting_options=formatting_options,
+                    template_font_info=template_font_info
+                ))
+                new_elements.append(h_p)
+            if description:
+                for line in description.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    is_bullet = line.startswith(' • ')
+                    line_text = line[3:] if is_bullet else line
+
+                    d_p = self._make_paragraph_element("cvtext")
+                    d_p.append(self._make_run_element(
+                        f" • {line_text}" if is_bullet else line_text,
+                        bold=False,
+                        formatting_options=formatting_options,
+                        template_font_info=template_font_info
+                    ))
+                    new_elements.append(d_p)
+
         for i, elem in enumerate(new_elements):
             parent.insert(insert_position + i, elem)
         parent.remove(projects_p)
@@ -292,7 +334,7 @@ class TemplateManager:
             "{{SKILLS}}": self._format_skills(cv_data.get("professional_experience", [])), 
             "{{MEMBERSHIPS}}": self._format_memberships(cv_data.get("professional_memberships", [])),
             "{{CERTIFICATIONS}}": self._format_certifications(cv_data.get("certifications", [])),
-            "{{PROJECTS}}": self._format_professional_experience(cv_data.get("professional_experience", [])),
+            "{{PROJECTS}}": self._format_professional_experience(cv_data.get("professional_experience", []), cv_data.get("external_experience", [])),
             "{{CLIENT}}": formatting_options.get("client_name", "") or "",
             "{{OPPORTUNITY}}": formatting_options.get("opportunity_name", "") or ""
         }
@@ -369,7 +411,7 @@ class TemplateManager:
                             r.font.size = Pt(int(formatting_options["font_size"]))
 
             elif placeholder in text and placeholder == "{{PROJECTS}}":
-                projects_text = self._format_professional_experience(cv_data.get("professional_experience", []))
+                projects_text = self._format_professional_experience(cv_data.get("professional_experience", []), cv_data.get("external_experience", []))
 
                 if not projects_text:
                     self._delete_paragraph(paragraph)
@@ -412,61 +454,65 @@ class TemplateManager:
 
         # Clear existing text and formatting
         paragraph.clear()
-        
-        # Split text by bold markers
-        parts = re.split(r'\*\*(.*?)\*\*', text)
-        
-        for i, part in enumerate(parts):
-            if i % 2 == 0:  # Normal text
+
+        def apply_common_font(run):
+            if apply_custom_font:
+                if formatting_options.get("font_family"):
+                    run.font.name = formatting_options["font_family"]
+                if formatting_options.get("font_size"):
+                    run.font.size = Pt(int(formatting_options["font_size"]))
+            else:
+                if original_font_info.get('name'):
+                    run.font.name = original_font_info['name']
+                if original_font_info.get('size'):
+                    run.font.size = original_font_info['size']
+            if original_font_info.get('italic') is not None:
+                run.italic = original_font_info['italic']
+
+        # Split text by markers: **bold** (regular project headers) and
+        # %%red%% (external/non-SYSTRA experience headers — red, not bold)
+        pattern = re.compile(r'\*\*(.*?)\*\*|%%(.*?)%%')
+        last_end = 0
+        for m in pattern.finditer(text):
+            if m.start() > last_end:
+                part = text[last_end:m.start()]
                 if part:
                     run = paragraph.add_run(part)
-
-                    # Apply user selected font (fallback to original font formatting) + explicitly not bold
-                    if apply_custom_font:
-                        if formatting_options.get("font_family"):
-                            run.font.name = formatting_options["font_family"]
-                        if formatting_options.get("font_size"):
-                            run.font.size = Pt(int(formatting_options["font_size"]))
-                    else:
-                        # Restore from original run when blank selected
-                        if original_font_info.get('name'):
-                            run.font.name = original_font_info['name']
-                        if original_font_info.get('size'):
-                            run.font.size = original_font_info['size']
-
+                    apply_common_font(run)
                     if original_font_info.get('color'):
                         run.font.color.rgb = original_font_info['color']
-                    if original_font_info.get('italic') is not None:
-                        run.italic = original_font_info['italic']
-                        
-                    # Explicitly remove bold formatting for normal text
                     run.bold = False
-                    run.font.bold = False  # Additional explicit setting
-            else:  # Bold text
+                    run.font.bold = False
+
+            if m.group(1) is not None:  # **bold**
+                part = m.group(1)
                 if part:
                     bold_run = paragraph.add_run(part)
-
-                    # Apply user selected font (fallback to original font formatting) + make bold
-                    if apply_custom_font:
-                        if formatting_options.get("font_family"):
-                            bold_run.font.name = formatting_options["font_family"]
-                        if formatting_options.get("font_size"):
-                            bold_run.font.size = Pt(int(formatting_options["font_size"]))
-                    else:
-                        # Restore from original run when blank selected
-                        if original_font_info.get('name'):
-                            bold_run.font.name = original_font_info['name']
-                        if original_font_info.get('size'):
-                            bold_run.font.size = original_font_info['size']
-
+                    apply_common_font(bold_run)
                     if original_font_info.get('color'):
                         bold_run.font.color.rgb = original_font_info['color']
-                    if original_font_info.get('italic') is not None:
-                        bold_run.italic = original_font_info['italic']
-
-                    # Additional explicit setting
                     bold_run.bold = True
-                    bold_run.font.bold = True  
+                    bold_run.font.bold = True
+            else:  # %%red%%
+                part = m.group(2)
+                if part:
+                    red_run = paragraph.add_run(part)
+                    apply_common_font(red_run)
+                    red_run.font.color.rgb = RGBColor(0xC0, 0x00, 0x00)
+                    red_run.bold = False
+                    red_run.font.bold = False
+
+            last_end = m.end()
+
+        if last_end < len(text):
+            part = text[last_end:]
+            if part:
+                run = paragraph.add_run(part)
+                apply_common_font(run)
+                if original_font_info.get('color'):
+                    run.font.color.rgb = original_font_info['color']
+                run.bold = False
+                run.font.bold = False
 
 
     def _format_education(self, education_list):
@@ -549,13 +595,11 @@ class TemplateManager:
                 formatted.append(str(membership))
         return "\n".join([f"● {membership}" for membership in formatted])
 
-    def _format_professional_experience(self, experience_list):
-        """Format professional experience entries"""
-        if not experience_list:
-            return ""
-        
+    def _format_professional_experience(self, experience_list, external_list=None):
+        """Format professional experience entries, followed by external (non-SYSTRA) experience"""
         formatted = []
-        for exp in experience_list:
+
+        for exp in experience_list or []:
             exp_parts = []
             header_parts = []
             # Add role and company
@@ -581,7 +625,18 @@ class TemplateManager:
             # Combine header and description
             if exp_parts:
                 formatted.append("\n".join(exp_parts))
-        
+
+        # NEW: append external (non-SYSTRA) experience after regular SYSTRA
+        # projects, with the header marked for red (not bold) formatting.
+        for ext in external_list or []:
+            ext_parts = []
+            if ext.get("header"):
+                ext_parts.append(f"%%{ext['header']}%%")
+            if ext.get("description"):
+                ext_parts.append(ext["description"])
+            if ext_parts:
+                formatted.append("\n".join(ext_parts))
+
         return "\n\n".join([f"{exp}" for exp in formatted]) 
     
     def _format_professional_experience_summary(self, experience_list):
